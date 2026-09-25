@@ -23,27 +23,61 @@ export function nomesResponsaveis(ids: string[], label: string | null, perfis: M
   return label ?? "Sem responsável";
 }
 
-export function prazoTexto(dias: number | null, atrasada: boolean) {
-  if (dias === null) return "Sem prazo";
-  if (atrasada) return `${Math.abs(dias)} d.u. atrasado`;
-  if (dias === 0) return "Vence hoje";
-  if (dias === 1) return "Vence amanhã";
-  return `${dias} d.u. restantes`;
-}
-
-export function prazoCor(dias: number | null, atrasada: boolean) {
-  if (dias === null) return "bg-slate-100 text-slate-600";
-  if (atrasada) return "bg-red-100 text-red-700";
-  if (dias <= 1) return "bg-amber-100 text-amber-800";
-  return "bg-emerald-100 text-emerald-700";
-}
-
-export const PLANO_COR: Record<string, string> = {
-  Flex: "bg-sky-100 text-sky-800",
-  Premium: "bg-violet-100 text-violet-800",
-  Full: "bg-indigo-100 text-indigo-800",
-};
-
 export function mapaPerfis(perfis: Profile[] | null) {
   return new Map((perfis ?? []).map((p) => [p.id, p]));
+}
+
+type PrazosEtapa = {
+  tipo: string;
+  prazo_dias_uteis: number | null;
+  prazo_flex: number | null;
+  prazo_full: number | null;
+  prazo_premium: number | null;
+  prazo_com_certificacao: number | null;
+};
+
+// texto curto dos prazos de uma etapa: "Flex 10 · Full 15 · Premium 25 d.u." / "1 d.u. (2 c/ certificação)"
+export function prazoEtapaTexto(e: PrazosEtapa) {
+  if (e.tipo === "marco") return "Marco";
+  if (e.tipo === "final") return "Fim";
+  if (e.prazo_flex !== null || e.prazo_full !== null || e.prazo_premium !== null) {
+    const p = (v: number | null) => v ?? e.prazo_dias_uteis ?? "—";
+    return `Flex ${p(e.prazo_flex)} · Full ${p(e.prazo_full)} · Premium ${p(e.prazo_premium)} d.u.`;
+  }
+  if (e.prazo_dias_uteis === null) return "Sem prazo";
+  const base = `${e.prazo_dias_uteis} d.u.`;
+  return e.prazo_com_certificacao !== null ? `${base} (${e.prazo_com_certificacao} c/ certificação)` : base;
+}
+
+export const GERENCIAMENTO_LABEL: Record<string, string> = {
+  ntl: "Com gerenciamento (NTL)",
+  proprio: "Sem gerenciamento (próprio NLG)",
+};
+export const GERENCIAMENTO_CURTO: Record<string, string> = { ntl: "NTL", proprio: "Próprio" };
+
+// preenche as variáveis dos modelos de e-mail
+export function preencherModelo(
+  texto: string,
+  v: { empresa?: string | null; contato?: string | null; plano?: string | null; meu_nome?: string | null; codigo?: string | null; gerenciamento?: string | null }
+) {
+  return texto
+    .replaceAll("{empresa}", v.empresa || "XXX")
+    .replaceAll("{contato}", v.contato || "XXX")
+    .replaceAll("{plano}", v.plano || "XXX")
+    .replaceAll("{meu_nome}", v.meu_nome || "XXX")
+    .replaceAll("{codigo}", v.codigo || "")
+    .replaceAll("{x_ntl}", v.gerenciamento === "ntl" ? "X" : " ")
+    .replaceAll("{x_proprio}", v.gerenciamento === "proprio" ? "X" : " ");
+}
+
+/** meta compacta: "10/15/25" por plano, "1 d.u." ou "1–2 d.u." com certificação */
+export function metaCurta(e: { tipo: string; prazo_dias_uteis: number | null; prazo_flex?: number | null; prazo_full?: number | null; prazo_premium?: number | null; prazo_com_certificacao?: number | null }) {
+  if (e.tipo !== "tarefa") return "—";
+  if (e.prazo_flex != null || e.prazo_full != null || e.prazo_premium != null) {
+    const p = (v: number | null | undefined) => v ?? e.prazo_dias_uteis ?? "—";
+    return `${p(e.prazo_flex)}/${p(e.prazo_full)}/${p(e.prazo_premium)} d.u.`;
+  }
+  if (e.prazo_dias_uteis == null) return "sem prazo";
+  if (e.prazo_com_certificacao != null) return `${e.prazo_dias_uteis}–${e.prazo_com_certificacao} d.u.`;
+  return `${e.prazo_dias_uteis} d.u.`;
 }

@@ -1,13 +1,88 @@
 @import "tailwindcss";
 
-:root { color-scheme: light; }
-body { @apply bg-slate-50 text-slate-900 antialiased; }
+/* ------------------------------------------------------------------
+   Design tokens — NDL Projetos (central de operações)
+   ------------------------------------------------------------------ */
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
 
-@utility btn { @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-50; }
-@utility btn-primary { @apply btn bg-indigo-600 text-white hover:bg-indigo-700; }
-@utility btn-ghost { @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50; }
-@utility btn-danger { @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50; }
-@utility input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100; }
-@utility label { @apply mb-1 block text-xs font-medium text-slate-600; }
-@utility card { @apply rounded-xl border border-slate-200 bg-white; }
-@utility chip { @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium; }
+  --color-canvas: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-sunken: #f9fafc;
+  --color-line: #e5eaf0;
+  --color-line-strong: #d5dce5;
+
+  --color-ink: #172033;
+  --color-muted: #667085;
+  --color-subtle: #98a2b3;
+
+  --color-primary: #123b63;
+  --color-primary-hover: #0e2f50;
+  --color-primary-2: #2f6b9a;
+  --color-primary-soft: #eaf1f8;
+
+  --color-ok: #16a36a;
+  --color-ok-soft: #e8f6ef;
+  --color-ok-ink: #0f7a4f;
+  --color-warn: #d99a21;
+  --color-warn-soft: #fbf3e2;
+  --color-warn-ink: #9a6a0f;
+  --color-bad: #d64545;
+  --color-bad-soft: #fbecec;
+  --color-bad-ink: #b53333;
+
+  --radius-card: 8px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-pop: 0 8px 24px rgba(16, 24, 40, 0.12);
+}
+
+:root { color-scheme: light; }
+html, body { background: var(--color-canvas); }
+body {
+  @apply text-ink antialiased;
+  font-feature-settings: "cv11", "ss01", "tnum" 0;
+  font-size: 14px;
+}
+::selection { background: #cfe0f0; }
+
+/* ------------------------------------------------------------------
+   Primitivos
+   ------------------------------------------------------------------ */
+@utility card { @apply rounded-[var(--radius-card)] border border-line bg-surface shadow-[var(--shadow-card)]; }
+@utility card-header { @apply flex items-center justify-between gap-3 border-b border-line px-4 py-3; }
+@utility card-title { @apply text-[13px] font-semibold text-ink; }
+@utility card-sub { @apply text-xs text-muted; }
+
+@utility btn { @apply inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-3 text-[13px] font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-2; }
+@utility btn-primary { @apply btn bg-primary text-white hover:bg-primary-hover; }
+@utility btn-ghost { @apply btn border border-line bg-surface text-ink hover:bg-sunken; }
+@utility btn-quiet { @apply btn text-muted hover:bg-sunken hover:text-ink; }
+@utility btn-danger { @apply btn border border-[#f1caca] bg-surface text-bad-ink hover:bg-bad-soft; }
+
+@utility input { @apply h-9 w-full rounded-md border border-line bg-surface px-3 text-[13px] text-ink outline-none transition placeholder:text-subtle focus:border-primary-2 focus:ring-2 focus:ring-primary-soft; }
+@utility textarea { @apply w-full rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink outline-none transition placeholder:text-subtle focus:border-primary-2 focus:ring-2 focus:ring-primary-soft; }
+@utility label { @apply mb-1 block text-xs font-medium text-muted; }
+@utility chip { @apply inline-flex h-5 items-center gap-1 rounded px-1.5 text-[11px] font-medium whitespace-nowrap; }
+@utility eyebrow { @apply text-[11px] font-semibold tracking-wide text-subtle uppercase; }
+@utility num { font-variant-numeric: tabular-nums; }
+
+/* tabela padrão */
+@utility table-base {
+  @apply w-full text-[13px];
+  & thead th { @apply h-9 border-b border-line bg-sunken px-4 text-left text-[11px] font-semibold tracking-wide text-muted uppercase; }
+  & tbody td { @apply h-11 border-b border-line px-4 align-middle; }
+  & tbody tr:last-child td { @apply border-b-0; }
+  & tbody tr { @apply transition-colors; }
+  & tbody tr:hover { @apply bg-sunken; }
+}
+
+/* checkbox discreto */
+input[type="checkbox"] { accent-color: var(--color-primary); }
+
+/* scroll horizontal elegante (kanban, timeline) */
+.scroll-x { overflow-x: auto; scrollbar-width: thin; scrollbar-color: #cfd6df transparent; }
+.scroll-x::-webkit-scrollbar { height: 8px; }
+.scroll-x::-webkit-scrollbar-thumb { background: #cfd6df; border-radius: 8px; }
+
+details > summary::-webkit-details-marker { display: none; }
+details > summary { list-style: none; }

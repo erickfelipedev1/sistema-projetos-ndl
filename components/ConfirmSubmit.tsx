@@ -1,19 +1,8 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
+import SubmitButton from "@/components/ui/SubmitButton";
 
-export default function ConfirmSubmit({
-  children, mensagem, className = "btn-primary",
-}: { children: React.ReactNode; mensagem?: string; className?: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      className={className}
-      disabled={pending}
-      onClick={(e) => { if (mensagem && !window.confirm(mensagem)) e.preventDefault(); }}
-    >
-      {pending ? "Salvando…" : children}
-    </button>
-  );
+/** compatibilidade: mesmo comportamento do SubmitButton */
+export default function ConfirmSubmit({ children, mensagem, className = "btn-primary" }: { children: React.ReactNode; mensagem?: string; className?: string }) {
+  return <SubmitButton className={className} confirmar={mensagem}>{children}</SubmitButton>;
 }

@@ -294,7 +294,8 @@ end $$;
 -- ---------------------------------------------------------------------
 -- Views (respeitam o RLS de quem consulta)
 -- ---------------------------------------------------------------------
-create or replace view public.v_etapas_atuais with (security_invoker = true) as
+drop view if exists public.v_etapas_atuais;
+create view public.v_etapas_atuais with (security_invoker = true) as
 select pe.id, pe.processo_id, pe.etapa_id, pe.ordem, pe.area, pe.nome, pe.tipo,
        pe.prazo_dias_uteis, pe.prazo_editavel, pe.responsaveis, pe.responsaveis_label,
        pe.iniciado_em, pe.prazo_em,
@@ -305,7 +306,8 @@ from public.processo_etapas pe
 join public.processos p on p.id = pe.processo_id
 where pe.status = 'em_andamento' and p.status = 'ativo';
 
-create or replace view public.v_desempenho_etapas with (security_invoker = true) as
+drop view if exists public.v_desempenho_etapas;
+create view public.v_desempenho_etapas with (security_invoker = true) as
 select e.id as etapa_id, e.ordem, e.area, e.nome, e.tipo, e.prazo_dias_uteis,
        count(pe.id) filter (where pe.status = 'concluida' and pe.tipo = 'tarefa')::int as concluidas,
        round(avg(public.dias_uteis_entre((pe.iniciado_em at time zone 'America/Sao_Paulo')::date,

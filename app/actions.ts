@@ -19,8 +19,16 @@ export async function criarProcesso(fd: FormData) {
     p_cliente: txt(fd, "cliente"),
     p_plano: txt(fd, "plano"),
     p_descricao: txt(fd, "descricao"),
+    p_certificacao: fd.get("certificacao") === "on",
+    p_cliente_id: txt(fd, "cliente_id") || null,
   });
   if (error) falhou(error.message);
+  const contato = txt(fd, "contato");
+  const ger = txt(fd, "gerenciamento");
+  if (contato || ger) {
+    await supabase.from("processos").update({ contato: contato || null, gerenciamento: ger || null }).eq("id", data);
+    if (ger) await supabase.rpc("sincronizar_checklist", { p_processo_id: data });
+  }
   revalidatePath("/", "layout");
   redirect(`/processos/${data}`);
 }
@@ -86,9 +94,20 @@ export async function editarProcesso(fd: FormData) {
   const id = txt(fd, "processo_id");
   const { error } = await supabase
     .from("processos")
-    .update({ cliente: txt(fd, "cliente"), plano: txt(fd, "plano") || null, descricao: txt(fd, "descricao") || null })
+    .update({
+      ...(txt(fd, "cliente_id") ? { cliente_id: txt(fd, "cliente_id") } : { cliente: txt(fd, "cliente") }),
+      plano: txt(fd, "plano") || null,
+      descricao: txt(fd, "descricao") || null,
+      certificacao: fd.get("certificacao") === "on",
+      contato: txt(fd, "contato") || null,
+      gerenciamento: txt(fd, "gerenciamento") || null,
+    })
     .eq("id", id);
   if (error) falhou(error.message);
+  const { error: e2 } = await supabase.rpc("recalcular_prazos", { p_processo_id: id });
+  if (e2) falhou(e2.message);
+  const { error: e3 } = await supabase.rpc("sincronizar_checklist", { p_processo_id: id });
+  if (e3) falhou(e3.message);
   revalidatePath("/", "layout");
 }
 
@@ -108,6 +127,7 @@ export async function salvarEtapa(fd: FormData) {
   const supabase = await createClient();
   const id = Number(txt(fd, "id"));
   const prazo = txt(fd, "prazo_dias_uteis");
+  const num = (k: string) => (txt(fd, k) === "" ? null : Number(txt(fd, k)));
   const payload = {
     ordem: Number(txt(fd, "ordem")),
     area: txt(fd, "area"),
@@ -118,6 +138,10 @@ export async function salvarEtapa(fd: FormData) {
     responsaveis_label: txt(fd, "responsaveis_label") || null,
     responsaveis_padrao: fd.getAll("responsaveis_padrao").map(String).filter(Boolean),
     ativo: fd.get("ativo") === "on",
+    prazo_flex: num("prazo_flex"),
+    prazo_full: num("prazo_full"),
+    prazo_premium: num("prazo_premium"),
+    prazo_com_certificacao: num("prazo_com_certificacao"),
   };
   const { error } = id
     ? await supabase.from("etapas").update(payload).eq("id", id)
@@ -155,11 +179,13 @@ export async function removerFeriado(fd: FormData) {
   revalidatePath("/configuracoes");
 }
 
-export async function salvarMeuNome(fd: FormData) {
+export async function salvarMeuPerfil(fd: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-  await supabase.from("profiles").update({ nome: txt(fd, "nome") }).eq("id", user.id);
+  const { error } = await supabase.from("profiles").update({ nome: txt(fd, "nome"), cargo: txt(fd, "cargo") || null }).eq("id", user.id);
+  if (error) falhou(error.message);
+  await supabase.rpc("vincular_minhas_etapas");
   revalidatePath("/", "layout");
 }
 
@@ -167,4 +193,201 @@ export async function sair() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+// ---------- Checklist ----------
+
+export async function marcarChecklist(id: string, feito: boolean) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase
+    .from("processo_checklist")
+    .update({ feito, feito_por: feito ? user?.id ?? null : null, feito_em: feito ? new Date().toISOString() : null })
+    .eq("id", id);
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function salvarItemChecklist(fd: FormData) {
+  const supabase = await createClient();
+  const id = Number(txt(fd, "id"));
+  const payload = {
+    etapa_id: Number(txt(fd, "etapa_id")),
+    ordem: Number(txt(fd, "ordem")),
+    titulo: txt(fd, "titulo"),
+    descricao: txt(fd, "descricao") || null,
+    ativo: fd.get("ativo") === "on",
+    condicao: txt(fd, "condicao") || null,
+    aguarda_cliente: fd.get("aguarda_cliente") === "on",
+    prazo_depois: fd.get("aguarda_cliente") === "on" ? Number(txt(fd, "prazo_depois") || 1) : null,
+    responsaveis: fd.getAll("item_responsaveis").map(String).filter(Boolean),
+    prazo_item: txt(fd, "prazo_item") ? Number(txt(fd, "prazo_item")) : null,
+    prazo_item_cert: txt(fd, "prazo_item_cert") ? Number(txt(fd, "prazo_item_cert")) : null,
+  };
+  const { error } = id
+    ? await supabase.from("checklist_modelo").update(payload).eq("id", id)
+    : await supabase.from("checklist_modelo").insert(payload);
+  if (error) falhou(error.message);
+  revalidatePath("/configuracoes");
+  revalidatePath("/manual");
+}
+
+export async function salvarTexto(fd: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("textos").upsert({ chave: txt(fd, "chave"), conteudo: txt(fd, "conteudo") });
+  if (error) falhou(error.message);
+  revalidatePath("/manual");
+  revalidatePath("/configuracoes");
+}
+
+export async function salvarEmailModelo(fd: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("email_modelos")
+    .update({
+      titulo: txt(fd, "titulo"),
+      para: txt(fd, "para") || null,
+      assunto: txt(fd, "assunto") || null,
+      corpo: txt(fd, "corpo"),
+      ativo: fd.get("ativo") === "on",
+    })
+    .eq("id", Number(txt(fd, "id")));
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function definirSituacao(fd: FormData) {
+  const supabase = await createClient();
+  const peId = txt(fd, "pe_id");
+  const processoId = txt(fd, "processo_id");
+  const situacao = txt(fd, "situacao");
+  const { error } = await supabase.from("processo_etapas").update({ situacao: situacao || null }).eq("id", peId);
+  if (error) falhou(error.message);
+  await supabase.from("processo_eventos").insert({
+    processo_id: processoId, tipo: "situacao",
+    texto: situacao ? `Situação atualizada: ${situacao}` : "Situação removida",
+  });
+  revalidatePath("/", "layout");
+}
+
+export async function salvarResponsaveisPadrao(fd: FormData) {
+  const supabase = await createClient();
+  const id = Number(txt(fd, "id"));
+  const ids = fd.getAll("responsaveis_padrao").map(String).filter(Boolean);
+  const { error } = await supabase.from("etapas").update({ responsaveis_padrao: ids, responsaveis_label: txt(fd, "responsaveis_label") || null }).eq("id", id);
+  if (error) falhou(error.message);
+  if (fd.get("aplicar") === "on") {
+    const { error: e2 } = await supabase.from("processo_etapas").update({ responsaveis: ids }).eq("etapa_id", id).neq("status", "concluida");
+    if (e2) falhou(e2.message);
+  }
+  revalidatePath("/", "layout");
+}
+
+export async function salvarOrdemEtapas(fd: FormData) {
+  const supabase = await createClient();
+  const pares = [...fd.entries()].filter(([k]) => k.startsWith("ordem_")).map(([k, v]) => [Number(k.slice(6)), Number(v)] as const);
+  for (const [id, ordem] of pares) {
+    const { error } = await supabase.from("etapas").update({ ordem }).eq("id", id);
+    if (error) falhou(error.message);
+  }
+  revalidatePath("/", "layout");
+}
+
+export async function alterarMinhaSenha(fd: FormData) {
+  const supabase = await createClient();
+  const senha = txt(fd, "senha");
+  if (senha.length < 6) falhou("A senha precisa ter pelo menos 6 caracteres");
+  if (senha !== txt(fd, "confirma")) falhou("As senhas não conferem");
+  const { error } = await supabase.auth.updateUser({ password: senha });
+  if (error) falhou(error.message);
+}
+
+// ---------------------------------------------------------------------
+// Clientes
+// ---------------------------------------------------------------------
+export async function salvarCliente(fd: FormData) {
+  const supabase = await createClient();
+  const id = txt(fd, "id");
+  const dados = {
+    nome: txt(fd, "nome"),
+    cnpj: txt(fd, "cnpj") || null,
+    contato: txt(fd, "contato") || null,
+    email: txt(fd, "email") || null,
+    telefone: txt(fd, "telefone") || null,
+    observacoes: txt(fd, "observacoes") || null,
+  };
+  if (!dados.nome) falhou("Informe o nome do cliente");
+  if (id) {
+    const { error } = await supabase.from("clientes").update(dados).eq("id", id);
+    if (error) falhou(error.code === "23505" ? "Já existe um cliente com esse nome" : error.message);
+    revalidatePath("/", "layout");
+    return;
+  }
+  const { data, error } = await supabase.from("clientes").insert(dados).select("id").single();
+  if (error) falhou(error.code === "23505" ? "Já existe um cliente com esse nome" : error.message);
+  revalidatePath("/clientes");
+  redirect(`/clientes/${data.id}`);
+}
+
+// ---------------------------------------------------------------------
+// Chat: demandas
+// ---------------------------------------------------------------------
+export async function concluirDemanda(fd: FormData) {
+  const supabase = await createClient();
+  const reabrir = txt(fd, "reabrir") === "1";
+  const { error } = await supabase
+    .from("mensagens")
+    .update({ demanda_status: reabrir ? "aberta" : "concluida", demanda_concluida_em: reabrir ? null : new Date().toISOString() })
+    .eq("id", Number(txt(fd, "id")));
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
+// ---------------------------------------------------------------------
+// Anexos: link temporário para baixar e exclusão
+// ---------------------------------------------------------------------
+export async function linkAnexo(id: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: a } = await supabase.from("anexos").select("caminho,nome").eq("id", id).maybeSingle();
+  if (!a) return null;
+  const { data } = await supabase.storage.from("anexos").createSignedUrl(a.caminho, 120, { download: a.nome });
+  return data?.signedUrl ?? null;
+}
+
+export async function excluirAnexo(fd: FormData) {
+  const supabase = await createClient();
+  const id = txt(fd, "id");
+  const { data: a } = await supabase.from("anexos").select("caminho,nome,processo_id").eq("id", id).maybeSingle();
+  if (!a) return;
+  await supabase.storage.from("anexos").remove([a.caminho]);
+  const { error } = await supabase.from("anexos").delete().eq("id", id);
+  if (error) falhou(error.message);
+  if (a.processo_id) await registrar(a.processo_id, "anexo", `Arquivo removido: ${a.nome}`);
+  revalidatePath("/", "layout");
+}
+
+export async function registrarAnexo(processoId: string, nome: string) {
+  await registrar(processoId, "anexo", `Arquivo anexado: ${nome}`);
+  revalidatePath(`/processos/${processoId}`);
+}
+
+export async function excluirCliente(fd: FormData) {
+  const supabase = await createClient();
+  const id = txt(fd, "id");
+  const { count } = await supabase.from("processos").select("id", { count: "exact", head: true }).eq("cliente_id", id);
+  if (count) falhou("Este cliente tem processos e não pode ser excluído");
+  const { error } = await supabase.from("clientes").delete().eq("id", id);
+  if (error) falhou(error.message);
+  revalidatePath("/clientes");
+  redirect("/clientes");
+}
+
+// ---------------------------------------------------------------------
+// Aguardando cliente: registrar a cobrança semanal
+// ---------------------------------------------------------------------
+export async function registrarCobranca(fd: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("registrar_cobranca", { p_pe_id: txt(fd, "pe_id"), p_obs: txt(fd, "obs") || null });
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
 }
