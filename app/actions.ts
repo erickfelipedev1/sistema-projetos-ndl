@@ -413,3 +413,12 @@ export async function souAdmin() {
   const { data } = await supabase.rpc("is_admin");
   return data === true;
 }
+
+export async function pausarProcesso(fd: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("pausar_processo", {
+    p_processo_id: txt(fd, "processo_id"), p_pausar: txt(fd, "retomar") !== "1", p_motivo: txt(fd, "motivo") || null,
+  });
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}

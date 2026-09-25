@@ -22,9 +22,9 @@ import CobrancaForm from "@/components/processos/CobrancaForm";
 import { Hourglass } from "lucide-react";
 import Anexos, { AnexarBotao, type GrupoAnexos } from "@/components/anexos/Anexos";
 import { podeEditarEtapa, podeMarcarItem, responsaveisDoItem } from "@/lib/permissoes";
-import { Lock } from "lucide-react";
+import { Lock, Pause, Play } from "lucide-react";
 import {
-  alterarPrazo, alterarResponsaveis, avancarProcesso, cancelarProcesso, comentar, definirSituacao, editarProcesso, retornarProcesso,
+  alterarPrazo, alterarResponsaveis, avancarProcesso, cancelarProcesso, comentar, definirSituacao, editarProcesso, pausarProcesso, retornarProcesso,
 } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
@@ -108,6 +108,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
 
   const tabHref = (t: string) => `/processos/${id}?tab=${t}`;
   const statusProcesso = p.status === "concluido" ? { tipo: "concluido" as const, texto: "Concluído" }
+    : p.status === "pausado" ? { tipo: "sem_prazo" as const, texto: "Pausado" }
     : p.status === "cancelado" ? { tipo: "cancelado" as const, texto: "Cancelado" }
     : { tipo: stAtual, texto: atrasada ? "Em atraso" : "Em andamento" };
 
@@ -143,6 +144,21 @@ export default async function DetalheProcesso({ params, searchParams }: { params
               </Modal>
             )}
             {p.status === "ativo" && podeProc && (
+              <Modal rotulo={<><Pause size={14} /> Pausar</>} titulo="Pausar processo" descricao="O processo sai do kanban e dos prazos até ser retomado. Fica na aba Pausados.">
+                <form action={pausarProcesso} className="space-y-3">
+                  <input type="hidden" name="processo_id" value={p.id} />
+                  <div><label className="label">Motivo</label><input name="motivo" className="input" placeholder="Ex.: cliente pediu para aguardar" /></div>
+                  <div className="flex justify-end"><SubmitButton>Pausar processo</SubmitButton></div>
+                </form>
+              </Modal>
+            )}
+            {p.status === "pausado" && podeProc && (
+              <form action={pausarProcesso}>
+                <input type="hidden" name="processo_id" value={p.id} /><input type="hidden" name="retomar" value="1" />
+                <SubmitButton className="btn-primary" pendente="Retomando…"><Play size={14} /> Retomar processo</SubmitButton>
+              </form>
+            )}
+            {p.status === "ativo" && podeProc && (
               <Modal rotulo={<><XCircle size={14} /> Cancelar processo</>} botaoClasse="btn-danger" titulo="Cancelar processo" descricao="O processo sai do kanban e vai para a aba Cancelados. Dá para reativar depois.">
                 <form action={cancelarProcesso} className="space-y-3">
                   <input type="hidden" name="processo_id" value={p.id} />
@@ -164,6 +180,12 @@ export default async function DetalheProcesso({ params, searchParams }: { params
           </div>
         </div>
       </div>
+
+      {p.status === "pausado" && (
+        <p className="flex items-center gap-2 rounded-md border border-line bg-sunken px-4 py-2.5 text-[13px] text-muted">
+          <Pause size={15} /> Processo <strong className="font-medium text-ink">pausado</strong>: fora do kanban e sem contar prazo. {podeProc ? "Use \"Retomar processo\" para voltar ao fluxo." : ""}
+        </p>
+      )}
 
       {/* faixa-resumo */}
       <section className="card grid grid-cols-2 divide-line md:grid-cols-4 md:divide-x">

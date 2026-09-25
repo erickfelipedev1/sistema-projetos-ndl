@@ -85,7 +85,7 @@ export type Processo = {
   cliente_id: string;
   plano: string | null;
   descricao: string | null;
-  status: "ativo" | "concluido" | "cancelado";
+  status: "ativo" | "pausado" | "concluido" | "cancelado";
   created_at: string;
   concluido_em: string | null;
   certificacao: boolean;

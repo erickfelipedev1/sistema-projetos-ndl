@@ -77,6 +77,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
                       const a = atuais.get(p.id);
                       const st = p.status === "concluido" ? { tipo: "concluido" as const, texto: "Concluído" }
                         : p.status === "cancelado" ? { tipo: "cancelado" as const, texto: "Cancelado" }
+                        : p.status === "pausado" ? { tipo: "sem_prazo" as const, texto: "Pausado" }
                         : a?.atrasada ? { tipo: "atrasado" as const, texto: "Em atraso" } : { tipo: "em_dia" as const, texto: "Em andamento" };
                       return (
                         <tr key={p.id} className="hover:bg-sunken/60">

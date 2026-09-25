@@ -96,3 +96,13 @@ Rode `supabase/011_permissoes_por_area.sql` (já incluído no `000_tudo.sql`).
   - Depois que o cargo de alguém é definido, só um administrador consegue mudá-lo.
   - Quem já tem cargo de Gestão vira administrador ao rodar o SQL. Se ninguém tiver, o Erick vira.
 - As regras valem no banco de dados, não só na tela.
+
+## v14 — Importação do Monday + status Pausado
+
+1. Rode `supabase/012_pausado_importacao_monday.sql` (já incluído no `000_tudo.sql`).
+2. Rode `supabase/013_dados_monday.sql`. Ele importa os 97 itens do quadro "Clientes | Projetos". Pode rodar de novo sem duplicar nada.
+   - Os 45 ativos entram na etapa Projeto, com a data de início e o prazo (término) que estavam no Monday.
+   - Os 9 finalizados com Ordem = Sim entram ativos em CX · Ordem. Os outros 33 finalizados entram como Concluídos (histórico).
+   - Os 10 pausados entram com o novo status **Pausado** (aba própria, com botão para retomar).
+   - Os clientes são criados pelo CNPJ ou pelo nome. Produto vira a descrição do processo. Responsável, prioridade, score e links dos arquivos ficam registrados no histórico de cada processo.
+   - O serviço "Estimativa de custos" entra sem plano.

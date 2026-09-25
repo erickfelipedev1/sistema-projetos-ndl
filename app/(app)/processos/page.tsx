@@ -24,10 +24,11 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
   const view = sp.view ?? "kanban";
   const { supabase, user, etapas, perfis, mapaPerfis, feriados } = await base();
 
-  const [{ data: atuaisData }, { count: nConc }, { count: nCanc }] = await Promise.all([
+  const [{ data: atuaisData }, { count: nConc }, { count: nCanc }, { count: nPaus }] = await Promise.all([
     supabase.from("v_etapas_atuais").select("*").order("prazo_em", { ascending: true, nullsFirst: false }),
     supabase.from("processos").select("id", { count: "exact", head: true }).eq("status", "concluido"),
     supabase.from("processos").select("id", { count: "exact", head: true }).eq("status", "cancelado"),
+    supabase.from("processos").select("id", { count: "exact", head: true }).eq("status", "pausado"),
   ]);
   const todos = (atuaisData ?? []) as EtapaAtual[];
 
@@ -70,6 +71,7 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
     <Tabs ativo={visao} itens={[
       { chave: "ativos", rotulo: "Ativos", href: "/processos?visao=ativos", contagem: todos.length },
       { chave: "concluido", rotulo: "Concluídos", href: "/processos?visao=concluido", contagem: nConc ?? 0 },
+      { chave: "pausado", rotulo: "Pausados", href: "/processos?visao=pausado", contagem: nPaus ?? 0 },
       { chave: "cancelado", rotulo: "Cancelados", href: "/processos?visao=cancelado", contagem: nCanc ?? 0 },
     ]} />
   );
@@ -115,7 +117,7 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
                 </tbody>
               </table>
             </div>
-          ) : <EmptyState titulo={visao === "concluido" ? "Nenhum processo concluído" : "Nenhum processo cancelado"} />}
+          ) : <EmptyState titulo={visao === "concluido" ? "Nenhum processo concluído" : visao === "pausado" ? "Nenhum processo pausado" : "Nenhum processo cancelado"} />}
         </div>
       </div>
     );

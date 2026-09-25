@@ -51,6 +51,7 @@ export default function Sidebar({ nome, cargo, contagens, sair }: { nome: string
           <div className="hidden space-y-0.5 pb-1 lg:block">
             <Sub href="/processos?visao=ativos" rotulo="Ativos" ativo={path === "/processos" && visao === "ativos"} n={contagens.ativos} />
             <Sub href="/processos?visao=concluido" rotulo="Concluídos" ativo={path === "/processos" && visao === "concluido"} />
+            <Sub href="/processos?visao=pausado" rotulo="Pausados" ativo={path === "/processos" && visao === "pausado"} />
             <Sub href="/processos?visao=cancelado" rotulo="Cancelados" ativo={path === "/processos" && visao === "cancelado"} />
           </div>
         )}

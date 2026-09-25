@@ -56,7 +56,9 @@ function CardProcesso({ p }: { p: PortalProcesso }) {
         </div>
       </header>
       <div className="flex flex-wrap items-center gap-3 px-4 pt-3">
-        {concluido
+        {p.status === "pausado"
+          ? <span className="chip bg-sunken text-muted">Pausado</span>
+          : concluido
           ? <span className="chip bg-ok-soft text-ok-ink"><PackageCheck size={13} /> Entregue</span>
           : <span className="chip bg-primary-soft text-primary"><Ship size={13} /> {atual ? `Etapa atual: ${nomeCurto(atual.nome)}` : "Em andamento"}</span>}
         <div className="flex min-w-[160px] flex-1 items-center gap-2">
@@ -77,7 +79,7 @@ function CardProcesso({ p }: { p: PortalProcesso }) {
 /** o que o cliente vê: só etapas e datas — sem responsáveis, checklist, comentários ou arquivos internos */
 export default function PortalView({ dados }: { dados: PortalDados }) {
   if (!dados) return <EmptyState titulo="Acesso sem cliente vinculado" texto="Fale com a equipe NDL para liberar o seu acesso." />;
-  const ativos = dados.processos.filter((p) => p.status === "ativo");
+  const ativos = dados.processos.filter((p) => p.status === "ativo" || p.status === "pausado");
   const concluidos = dados.processos.filter((p) => p.status !== "ativo");
   return (
     <div className="space-y-6">
