@@ -175,6 +175,22 @@ export type Cliente = {
   created_at: string;
 };
 
+export type Fornecedor = {
+  id: string;
+  nome: string;
+  produto: string | null;
+  contato: string | null;
+  origem: string | null;
+  telefone: string | null;
+  email: string | null;
+  site: string | null;
+  avaliacao: number | null;
+  observacoes: string | null;
+  criado_por_nome: string | null;
+  monday_id: string | null;
+  created_at: string;
+};
+
 export type Anexo = {
   id: string;
   processo_id: string | null;

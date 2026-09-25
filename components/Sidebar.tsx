@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { BookOpen, Building2, ChevronDown, LayoutDashboard, ListChecks, Mail, MessagesSquare, Settings, Workflow, LogOut } from "lucide-react";
+import { BookOpen, Building2, ChevronDown, LayoutDashboard, ListChecks, Mail, MessagesSquare, Settings, Truck, Workflow, LogOut } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 
 type Contagens = { ativos: number; minhas: number; atrasadasMinhas: number; chat: number; demandas: number };
@@ -60,6 +60,7 @@ export default function Sidebar({ nome, cargo, contagens, sair }: { nome: string
             <span className={`num hidden rounded px-1.5 text-[11px] font-semibold lg:inline ${contagens.atrasadasMinhas > 0 ? "bg-bad text-white" : "bg-white/15 text-white"}`}>{contagens.minhas}</span>
           ) : null} />
         <Item href="/clientes" icone={Building2} rotulo="Clientes" ativo={path.startsWith("/clientes")} />
+        <Item href="/fornecedores" icone={Truck} rotulo="Fornecedores" ativo={path.startsWith("/fornecedores")} />
         <Item href="/chat" icone={MessagesSquare} rotulo="Chat e demandas" ativo={path.startsWith("/chat")}
           extra={contagens.chat + contagens.demandas > 0 ? (
             <span className="flex items-center gap-1">

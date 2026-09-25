@@ -422,3 +422,38 @@ export async function pausarProcesso(fd: FormData) {
   if (error) falhou(error.message);
   revalidatePath("/", "layout");
 }
+
+// ---------------------------------------------------------------------
+// Fornecedores
+// ---------------------------------------------------------------------
+export async function salvarFornecedor(fd: FormData) {
+  const supabase = await createClient();
+  const id = txt(fd, "id");
+  const dados = {
+    nome: txt(fd, "nome"),
+    produto: txt(fd, "produto") || null,
+    contato: txt(fd, "contato") || null,
+    origem: txt(fd, "origem") || null,
+    telefone: txt(fd, "telefone") || null,
+    email: txt(fd, "email") || null,
+    site: txt(fd, "site") || null,
+    avaliacao: txt(fd, "avaliacao") ? Number(txt(fd, "avaliacao")) : null,
+    observacoes: txt(fd, "observacoes") || null,
+  };
+  if (!dados.nome) falhou("Informe o nome do fornecedor");
+  if (id) {
+    const { error } = await supabase.from("fornecedores").update(dados).eq("id", id);
+    if (error) falhou(error.message);
+  } else {
+    const { error } = await supabase.from("fornecedores").insert(dados);
+    if (error) falhou(error.message);
+  }
+  revalidatePath("/fornecedores");
+}
+
+export async function excluirFornecedor(fd: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("fornecedores").delete().eq("id", txt(fd, "id"));
+  if (error) falhou(error.message);
+  revalidatePath("/fornecedores");
+}
