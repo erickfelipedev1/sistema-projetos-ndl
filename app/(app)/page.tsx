@@ -11,12 +11,15 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { Responsavel } from "@/components/ui/Avatar";
 import EmptyState from "@/components/ui/EmptyState";
 import ActivityTimeline from "@/components/ui/ActivityTimeline";
-import FlowStrip, { type EtapaFluxo } from "@/components/painel/FlowStrip";
+import FluxoProcessos, { type EtapaFluxo, type ResumoFluxo } from "@/components/painel/FluxoProcessos";
 import BottleneckChart, { type LinhaGargalo } from "@/components/painel/BottleneckChart";
 
 export const dynamic = "force-dynamic";
 
-export default async function Painel() {
+export default async function Painel({ searchParams }: { searchParams: Promise<{ periodo?: string }> }) {
+  const sp = await searchParams;
+  const periodo = ["30", "90", "180"].includes(sp.periodo ?? "") ? sp.periodo! : "30";
+  const inicioPeriodo = Date.now() - Number(periodo) * 86400000;
   const { supabase, etapas, mapaPerfis, feriados, hoje } = await base();
   const desde = new Date(Date.now() - 180 * 86400000).toISOString();
 
@@ -60,7 +63,7 @@ export default async function Painel() {
 
   // ---------- fluxo + gargalos ----------
   const hist = (histData ?? []) as { etapa_id: number | null; iniciado_em: string | null; concluido_em: string | null; prazo_dias_uteis: number | null; tipo: string }[];
-  const histPorEtapa = agruparPor(hist.filter((h) => h.tipo === "tarefa" && h.etapa_id), (h) => h.etapa_id as number);
+  const histPorEtapa = agruparPor(hist.filter((h) => h.etapa_id && h.concluido_em && new Date(h.concluido_em).getTime() >= inicioPeriodo), (h) => h.etapa_id as number);
   const ativas = etapas.filter((e) => e.ativo);
   const fluxo: EtapaFluxo[] = ativas.map((e) => {
     const h = histPorEtapa.get(e.id) ?? [];
@@ -70,10 +73,23 @@ export default async function Painel() {
     return {
       id: e.id, ordem: e.ordem, nome: e.nome, area: e.area, tipo: e.tipo,
       emAndamento: aqui.length, atrasadas: aqui.filter((a) => a.atrasada).length,
-      mediaReal: media(reais), meta: media(metas) ?? e.prazo_dias_uteis,
-      metaTexto: metaCurta(e),
+      atencao: aqui.filter((a) => !a.atrasada && !a.aguardando_cliente && a.dias_restantes !== null && a.dias_restantes <= 1).length,
+      mediaReal: e.tipo === "tarefa" ? media(reais) : null,
+      meta: media(metas) ?? e.prazo_full ?? e.prazo_dias_uteis,
+      passagens: h.length,
     };
   });
+  const concluidosPeriodo = concluidos.filter((p) => new Date(p.concluido_em!).getTime() >= inicioPeriodo);
+  const resumo: ResumoFluxo = {
+    atrasado: atrasados.length,
+    aguardando: atuais.filter((a) => !a.atrasada && a.aguardando_cliente).length,
+    atencao: atuais.filter((a) => !a.atrasada && !a.aguardando_cliente && a.dias_restantes !== null && a.dias_restantes <= 1).length,
+    noPrazo: atuais.filter((a) => !a.atrasada && !a.aguardando_cliente && (a.dias_restantes === null || a.dias_restantes > 1)).length,
+    total: atuais.length,
+    tempoMedio: media(concluidosPeriodo.map(dur)),
+    concluidos: concluidosPeriodo.length,
+    metaFluxo: ativas.filter((e) => e.tipo === "tarefa").reduce((s, e) => s + (e.prazo_full ?? e.prazo_dias_uteis ?? 0), 0),
+  };
   const gargalos: LinhaGargalo[] = fluxo
     .filter((f) => f.tipo === "tarefa" && f.mediaReal !== null && f.meta)
     .map((f) => ({ id: f.id, nome: f.nome, realizado: f.mediaReal!, planejado: f.meta!, amostra: (histPorEtapa.get(f.id) ?? []).length }));
@@ -116,20 +132,7 @@ export default async function Painel() {
       </section>
 
       {/* Fluxo */}
-      <section className="card">
-        <div className="card-header">
-          <div>
-            <h2 className="card-title">Fluxo dos processos</h2>
-            <p className="card-sub">Processos em cada etapa agora · tempo médio realizado × meta (dias úteis)</p>
-          </div>
-          <div className="hidden items-center gap-3 text-[11px] text-muted md:flex">
-            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-ok" />Dentro do prazo</span>
-            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-warn" />Atenção</span>
-            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-bad" />Acima do prazo</span>
-          </div>
-        </div>
-        <div className="px-3 py-4"><FlowStrip etapas={fluxo} /></div>
-      </section>
+      <FluxoProcessos etapas={fluxo} resumo={resumo} periodo={periodo} />
 
       <div className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
         {/* Gargalos */}
@@ -137,7 +140,7 @@ export default async function Painel() {
           <div className="card-header">
             <div>
               <h2 className="card-title">Análise de gargalos</h2>
-              <p className="card-sub">Tempo médio realizado × prazo, por etapa (últimos 6 meses)</p>
+              <p className="card-sub">Tempo médio realizado × prazo, por etapa ({periodo === "180" ? "últimos 6 meses" : `últimos ${periodo} dias`})</p>
             </div>
           </div>
           <div className="px-4 pt-4 pb-3">

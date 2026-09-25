@@ -5,6 +5,7 @@
    ------------------------------------------------------------------ */
 @theme {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --breakpoint-3xl: 106rem;
 
   --color-canvas: #f6f8fb;
   --color-surface: #ffffff;
