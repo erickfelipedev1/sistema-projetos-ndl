@@ -55,6 +55,12 @@ function traduzErro(msg: string) {
 }
 
 // ações administrativas: só quem é da equipe (clientes do portal não podem)
+async function exigirAdmin() {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("is_admin");
+  if (data !== true) throw new Error("Só um administrador pode fazer isso");
+}
+
 async function exigirLogado() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -65,7 +71,7 @@ async function exigirLogado() {
 
 // Configurações: adicionar uma pessoa
 export async function adicionarPessoa(fd: FormData) {
-  await exigirLogado();
+  await exigirAdmin();
   const r = await criar(String(fd.get("nome") ?? ""), String(fd.get("cargo") ?? ""));
   if (!r.ok) throw new Error(r.erro);
   revalidatePath("/", "layout");
@@ -73,7 +79,7 @@ export async function adicionarPessoa(fd: FormData) {
 
 // Configurações: cria de uma vez as contas dos nomes que aparecem no fluxo
 export async function criarContasDoFluxo() {
-  await exigirLogado();
+  await exigirAdmin();
   const admin = createAdminClient();
   const [{ data: etapas }, { data: perfis }] = await Promise.all([
     admin.from("etapas").select("area,responsaveis_label,ordem").eq("ativo", true).order("ordem"),
@@ -100,7 +106,7 @@ export async function criarContasDoFluxo() {
 
 // Configurações: volta a senha de alguém para nome+2026
 export async function resetarSenha(fd: FormData) {
-  await exigirLogado();
+  await exigirAdmin();
   const id = String(fd.get("id") ?? "");
   const admin = createAdminClient();
   const { data: perfil } = await admin.from("profiles").select("nome").eq("id", id).eq("tipo", "equipe").single();

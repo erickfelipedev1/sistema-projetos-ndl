@@ -81,3 +81,18 @@ Rode `supabase/010_projetos_cotacao_estimativa.sql` (já incluído no `000_tudo.
 - A demanda aparece em Minhas tarefas › "Demandas para você" e no Chat. Concluir a demanda marca o item no checklist, e marcar o item conclui a demanda.
 - Processos que estavam em Cotação ou Estimativa voltam para Projetos no ponto certo do checklist, com o prazo original.
 - Em Configurações › Checklists, cada item pode ter responsável e prazo próprios.
+
+## v12 — Permissões por área
+
+Rode `supabase/011_permissoes_por_area.sql` (já incluído no `000_tudo.sql`).
+
+- **Todo mundo vê tudo**, e qualquer pessoa pode comentar e anexar arquivos.
+- **Marcar checklist, avançar, voltar, prazo, responsável, situação e cobrança** de uma etapa ficam liberados só para:
+  - quem é da área (cargo igual à área da etapa, ex.: CS no Onboarding);
+  - quem é responsável pela etapa;
+  - administradores.
+- **Itens com responsável próprio** (cotação → Isabella/Cris, estimativa → Alycia) só podem ser marcados por essas pessoas. A demanda ligada ao item só pode ser concluída por quem a recebeu.
+- **Administrador**: altera a configuração do fluxo e define o cargo e o acesso de administrador de cada pessoa em Configurações › Equipe › Usuários.
+  - Depois que o cargo de alguém é definido, só um administrador consegue mudá-lo.
+  - Quem já tem cargo de Gestão vira administrador ao rodar o SQL. Se ninguém tiver, o Erick vira.
+- As regras valem no banco de dados, não só na tela.

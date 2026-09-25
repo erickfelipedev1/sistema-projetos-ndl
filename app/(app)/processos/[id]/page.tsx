@@ -21,6 +21,8 @@ import EmailModelos from "@/components/EmailModelos";
 import CobrancaForm from "@/components/processos/CobrancaForm";
 import { Hourglass } from "lucide-react";
 import Anexos, { AnexarBotao, type GrupoAnexos } from "@/components/anexos/Anexos";
+import { podeEditarEtapa, podeMarcarItem, responsaveisDoItem } from "@/lib/permissoes";
+import { Lock } from "lucide-react";
 import {
   alterarPrazo, alterarResponsaveis, avancarProcesso, cancelarProcesso, comentar, definirSituacao, editarProcesso, retornarProcesso,
 } from "@/app/actions";
@@ -45,6 +47,8 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   const respItens: Record<number, string> = Object.fromEntries(((modelosResp ?? []) as { id: number; responsaveis: string[]; responsaveis_label: string | null }[])
     .map((m) => [m.id, (m.responsaveis ?? []).map((r) => mapaPerfis.get(r)?.nome).filter(Boolean).join(" / ") || m.responsaveis_label || ""])
     .filter(([, v]) => v));
+  const eu = perfis.find((pf) => pf.id === user.id);
+  const modelosMap = new Map(((modelosResp ?? []) as { id: number; responsaveis: string[]; responsaveis_label: string | null }[]).map((m) => [m.id, m]));
   if (!proc) notFound();
 
   const p = proc as Processo;
@@ -60,6 +64,9 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   const previsao = p.status === "ativo" ? previsaoChegada(etapas, feriados, hoje) : null;
   const diasAtual = atual?.prazo_em ? diasUteisEntre(hoje, atual.prazo_em, feriados) : null;
   const atrasada = !!(atual?.prazo_em && atual.prazo_em < hoje);
+  const podeAtual = podeEditarEtapa(eu, atual);
+  const podeProc = !!eu?.admin || (p.status !== "concluido" && podeAtual);
+  const donoAtual = atual ? (atual.responsaveis.map((r) => mapaPerfis.get(r)?.nome).filter(Boolean).join(" / ") || atual.responsaveis_label || "") : "";
   const aguardando = !!atual?.aguardando_cliente;
   const baseCobranca = atual?.ultima_cobranca ?? atual?.aguardando_desde ?? null;
   const proximaCobranca = baseCobranca ? new Date(new Date(paraDataBR(baseCobranca) + "T12:00:00").getTime() + 7 * 86400000).toISOString().slice(0, 10) : null;
@@ -68,6 +75,13 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   const espera = { aguardando_cliente: aguardando, cobrar_hoje: cobrarHoje };
   const stAtual = statusPrazo(diasAtual, atrasada, espera);
   const checkAtual = atual ? checklist.filter((c) => c.processo_etapa_id === atual.id) : [];
+  const bloqueados: Record<string, string> = {};
+  for (const c of checkAtual) {
+    const resp = c.modelo_id ? responsaveisDoItem(modelosMap.get(c.modelo_id), perfis) : [];
+    if (!podeMarcarItem(eu, resp, atual)) {
+      bloqueados[c.id] = resp.length ? `Só ${resp.map((x) => mapaPerfis.get(x)?.nome).filter(Boolean).join(" / ")} pode marcar` : `Só ${atual?.area ?? "a área da etapa"} pode marcar`;
+    }
+  }
   const pendentes = checkAtual.filter((c) => !c.feito);
   const proximaAcao = atual?.situacao ?? (pendentes[0] ? limparPasso(pendentes[0].titulo) : null);
 
@@ -119,7 +133,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {(p.status === "concluido" || (atual && idxAtual > 0)) && (
+            {(p.status === "concluido" ? !!eu?.admin : !!atual && idxAtual > 0 && podeAtual) && (
               <Modal rotulo={<><RotateCcw size={14} /> Voltar etapa</>} titulo="Voltar uma etapa" descricao="A etapa atual volta a ficar pendente e a anterior é reaberta.">
                 <form action={retornarProcesso} className="space-y-3">
                   <input type="hidden" name="processo_id" value={p.id} />
@@ -128,7 +142,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                 </form>
               </Modal>
             )}
-            {p.status === "ativo" && (
+            {p.status === "ativo" && podeProc && (
               <Modal rotulo={<><XCircle size={14} /> Cancelar processo</>} botaoClasse="btn-danger" titulo="Cancelar processo" descricao="O processo sai do kanban e vai para a aba Cancelados. Dá para reativar depois.">
                 <form action={cancelarProcesso} className="space-y-3">
                   <input type="hidden" name="processo_id" value={p.id} />
@@ -139,7 +153,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
             )}
             <Menu>
               <Link href={tabHref("dados")} className="flex h-8 items-center gap-2 rounded px-2 text-[13px] hover:bg-sunken"><Pencil size={14} /> Editar dados</Link>
-              {p.status === "cancelado" && (
+              {p.status === "cancelado" && podeProc && (
                 <form action={cancelarProcesso}>
                   <input type="hidden" name="processo_id" value={p.id} /><input type="hidden" name="reativar" value="1" />
                   <button className="flex h-8 w-full items-center gap-2 rounded px-2 text-[13px] hover:bg-sunken"><RefreshCcw size={14} /> Reativar processo</button>
@@ -220,20 +234,27 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                     </p>
                     <p className="mt-0.5 text-[11.5px] text-subtle">Quando o cliente responder, marque o item no checklist — a etapa ganha {du(pendentes[0]?.prazo_depois ?? 1)} para terminar.</p>
                   </div>
-                  <CobrancaForm peId={atual.id} />
+                  {podeAtual && <CobrancaForm peId={atual.id} />}
                 </div>
               )}
 
+              {!podeAtual && (
+                <p className="flex items-center gap-2 border-b border-line bg-sunken/60 px-4 py-2.5 text-xs text-muted">
+                  <Lock size={13} /> Somente leitura: esta etapa é de <strong className="font-medium text-ink">{atual.area}{donoAtual ? ` (${donoAtual})` : ""}</strong>. Você pode ver, comentar e anexar arquivos.
+                </p>
+              )}
+
               {/* situação */}
-              <form action={definirSituacao} className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
+              {podeAtual ? <form action={definirSituacao} className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
                 <input type="hidden" name="pe_id" value={atual.id} /><input type="hidden" name="processo_id" value={p.id} />
                 <label htmlFor="situacao" className="text-xs font-medium text-muted">Por que está aqui?</label>
                 <input id="situacao" name="situacao" defaultValue={atual.situacao ?? ""} className="input h-8 min-w-[220px] flex-1" placeholder="Ex.: aguardando confirmação do fornecedor" />
                 <SubmitButton className="btn-ghost">Salvar situação</SubmitButton>
-              </form>
+              </form> : atual.situacao ? <p className="border-b border-line px-4 py-2.5 text-[13px]"><span className="text-xs font-medium text-muted">Situação: </span>{atual.situacao}</p> : null}
 
               {/* ações */}
               <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+                {podeAtual && (<>
                 <Modal rotulo={<><CircleCheck size={15} /> Concluir etapa e avançar</>} botaoClasse="btn-primary" titulo={`Concluir "${nomeCurto(atual.nome)}"`}
                   descricao={proxima ? `A próxima etapa, ${nomeCurto(proxima.nome)}, começa agora com prazo de ${proxima.prazo_dias_uteis != null ? du(proxima.prazo_dias_uteis) : "—"}.` : "O processo será finalizado."}>
                   <form action={avancarProcesso} className="space-y-3">
@@ -267,6 +288,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                     <div className="flex justify-end"><SubmitButton>Salvar responsáveis</SubmitButton></div>
                   </form>
                 </Modal>
+                </>)}
                 <AnexarBotao destino={{ processo_id: p.id, processo_etapa_id: atual.id }} />
                 {anexosAtual.length > 0 && (
                   <Link href={tabHref("anexos")} className="text-xs text-primary-2 hover:underline">{anexosAtual.length} arquivo{anexosAtual.length > 1 ? "s" : ""} nesta etapa</Link>
@@ -293,7 +315,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                   {checkAtual.length > 0 ? (
                     <div>
                       <p className="mb-2 text-xs font-medium text-muted">{atual ? nomeCurto(atual.nome) : ""}</p>
-                      <Checklist itens={checkAtual} nomes={nomes} responsaveis={respItens} />
+                      <Checklist itens={checkAtual} nomes={nomes} responsaveis={respItens} bloqueados={bloqueados} />
                     </div>
                   ) : <EmptyState compacto titulo="Esta etapa não tem checklist" texto="Itens podem ser configurados em Configurações › Checklists." />}
                   {!p.gerenciamento && p.status === "ativo" && (
@@ -382,7 +404,8 @@ export default async function DetalheProcesso({ params, searchParams }: { params
               )}
 
               {tab === "dados" && (
-                <form action={editarProcesso} className="grid max-w-3xl gap-4 md:grid-cols-2">
+                <form action={editarProcesso}><fieldset disabled={!podeProc} className="grid max-w-3xl gap-4 md:grid-cols-2">
+                  {!podeProc && <p className="flex items-center gap-2 rounded-md bg-sunken px-3 py-2 text-xs text-muted md:col-span-2"><Lock size={13} /> Só quem é da etapa atual ({atual?.area ?? "—"}) ou um administrador pode alterar os dados.</p>}
                   <input type="hidden" name="processo_id" value={p.id} />
                   <div>
                     <label className="label">Cliente</label>
@@ -406,7 +429,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                   <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" name="certificacao" defaultChecked={p.certificacao} /> Produto com certificação</label>
                   <p className="text-xs text-muted md:col-span-2">Mudar plano ou certificação recalcula os prazos das etapas não concluídas; mudar o tipo de ordem ajusta o checklist.</p>
                   <div className="md:col-span-2"><SubmitButton>Salvar alterações</SubmitButton></div>
-                </form>
+                </fieldset></form>
               )}
             </div>
           </section>

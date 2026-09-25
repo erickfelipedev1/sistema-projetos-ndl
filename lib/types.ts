@@ -1,4 +1,4 @@
-export type Profile = { id: string; nome: string | null; email: string | null; cargo?: string | null; usuario?: string | null; tipo?: "equipe" | "cliente"; cliente_id?: string | null };
+export type Profile = { id: string; nome: string | null; email: string | null; cargo?: string | null; usuario?: string | null; tipo?: "equipe" | "cliente"; cliente_id?: string | null; admin?: boolean };
 
 export type Etapa = {
   id: number;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { Lock, ChevronRight } from "lucide-react";
 import { base } from "@/lib/dados";
 import type { ChecklistModelo, EmailModelo, Etapa, Profile } from "@/lib/types";
 import { dataBR, metaCurta } from "@/lib/format";
@@ -11,7 +11,7 @@ import { Pessoa } from "@/components/ui/Avatar";
 import ActivityTimeline from "@/components/ui/ActivityTimeline";
 import {
   alterarMinhaSenha, removerFeriado, salvarEmailModelo, salvarEtapa, salvarFeriado, salvarItemChecklist, salvarMeuPerfil,
-  salvarOrdemEtapas, salvarResponsaveisPadrao, salvarTexto,
+  salvarOrdemEtapas, salvarResponsaveisPadrao, salvarTexto, definirPessoa,
 } from "@/app/actions";
 import { adicionarPessoa, criarContasDoFluxo, resetarSenha } from "@/app/contas";
 
@@ -24,6 +24,7 @@ const GRUPOS = {
   sistema: { rotulo: "Sistema", secoes: [["preferencias", "Preferências"], ["seguranca", "Segurança"], ["historico", "Histórico"]] },
 } as const;
 type Grupo = keyof typeof GRUPOS;
+const SO_ADMIN = ["etapas", "ordem", "responsaveis", "checklists", "usuarios"];
 
 function Secao({ titulo, descricao, children, acoes }: { titulo: string; descricao?: string; children: React.ReactNode; acoes?: React.ReactNode }) {
   return (
@@ -58,6 +59,12 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
   const sec = secoes.some(([k]) => k === sp.sec) ? sp.sec! : secoes[0][0];
   const { supabase, user, etapas, perfis, mapaPerfis } = await base();
   const eu = mapaPerfis.get(user.id);
+  const admin = !!eu?.admin;
+  const SoAdmin = () => admin ? null : (
+    <p className="flex items-center gap-2 rounded-md border border-line bg-sunken px-3 py-2 text-xs text-muted">
+      <Lock size={13} /> Somente leitura — só um administrador altera esta parte da configuração.
+    </p>
+  );
   const href = (g: string, s?: string) => `/configuracoes?grupo=${g}${s ? `&sec=${s}` : ""}`;
 
   return (
@@ -75,7 +82,8 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
           ))}
         </nav>
 
-        <div className="min-w-0 space-y-5">
+        <fieldset disabled={!admin && SO_ADMIN.includes(sec)} className="min-w-0 space-y-5">
+          {SO_ADMIN.includes(sec) && <SoAdmin />}
           {/* ---------------- FLUXO ---------------- */}
           {sec === "etapas" && (
             <Secao titulo="Etapas e prazos" descricao="Prazos em dias úteis. Mudanças valem para processos criados a partir de agora.">
@@ -166,13 +174,23 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
                   acoes={<form action={criarContasDoFluxo}><SubmitButton className="btn-ghost" confirmar="Criar as contas de todos os responsáveis do fluxo que ainda não têm conta?">Criar contas do fluxo</SubmitButton></form>}>
                   <div className="scroll-x">
                     <table className="table-base min-w-[640px]">
-                      <thead><tr><th>Pessoa</th><th>Login</th><th>Etapas</th><th className="text-right">Ações</th></tr></thead>
+                      <thead><tr><th>Pessoa</th><th>Login</th><th>Etapas</th><th>Cargo e acesso</th><th className="text-right">Ações</th></tr></thead>
                       <tbody>
                         {perfis.map((p) => (
                           <tr key={p.id}>
                             <td><Pessoa nome={p.nome ?? p.email ?? "—"} sub={p.cargo ?? "sem cargo"} /></td>
                             <td className="text-muted">{p.usuario ?? p.email}</td>
-                            <td className="text-xs text-muted">{etapas.filter((e) => e.responsaveis_padrao.includes(p.id)).map((e) => nomeCurto(e.nome)).join(", ") || "—"}</td>
+                            <td className="text-xs text-muted">{etapas.filter((e) => e.ativo && e.responsaveis_padrao.includes(p.id)).map((e) => nomeCurto(e.nome)).join(", ") || "—"}</td>
+                            <td>
+                              <form action={definirPessoa} className="flex items-center gap-2">
+                                <input type="hidden" name="id" value={p.id} />
+                                <select name="cargo" defaultValue={p.cargo ?? ""} className="input h-7 w-auto! text-xs" aria-label={`Cargo de ${p.nome}`}>
+                                  <option value="">Sem cargo</option>{cargos.map((c) => <option key={c}>{c}</option>)}
+                                </select>
+                                <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="admin" defaultChecked={!!p.admin} /> Admin</label>
+                                <SubmitButton className="btn-quiet h-7 text-xs">Salvar</SubmitButton>
+                              </form>
+                            </td>
                             <td className="text-right">
                               {p.usuario && (
                                 <form action={resetarSenha} className="inline">
@@ -250,9 +268,11 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
           {sec === "permissoes" && (
             <Secao titulo="Permissões" descricao="Como o acesso funciona hoje.">
               <div className="space-y-3 px-4 py-4 text-[13px] text-muted">
-                <p>Todas as pessoas com login ativo têm <strong className="text-ink">acesso completo</strong>: veem todos os processos, avançam etapas, editam dados e configurações.</p>
-                <p>O acesso ao banco é protegido por usuário autenticado (Supabase Auth + RLS). Quem não tem conta não vê nada.</p>
-                <p>Perfis com permissões diferentes (ex.: somente leitura, gestor) podem ser criados numa próxima versão.</p>
+                <p><strong className="text-ink">Todos veem tudo</strong>: processos, clientes, histórico, chat e anexos. Qualquer pessoa pode comentar e anexar arquivos.</p>
+                <p><strong className="text-ink">Alterar uma etapa</strong> (marcar checklist, avançar, voltar, prazo, responsável, situação, cobrança) só pode quem é da <strong className="text-ink">área da etapa</strong> (cargo igual à área — ex.: CS no Onboarding), quem é <strong className="text-ink">responsável</strong> por ela ou um <strong className="text-ink">administrador</strong>.</p>
+                <p><strong className="text-ink">Itens com responsável próprio</strong> (ex.: cotação de frete → Isabella/Cris, estimativa → Alycia) só podem ser marcados por essas pessoas, e a demanda só pode ser concluída por quem a recebeu.</p>
+                <p><strong className="text-ink">Administradores</strong> fazem tudo, alteram a configuração do fluxo (etapas, responsáveis, checklists, usuários) e definem o cargo de cada pessoa. O cargo, depois de definido, só o administrador muda.</p>
+                <p>As regras valem no banco de dados (não só na tela). Administradores atuais: <strong className="text-ink">{perfis.filter((p) => p.admin).map((p) => p.nome).join(", ") || "nenhum"}</strong>.</p>
               </div>
             </Secao>
           )}
@@ -386,7 +406,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
                 <div><label className="label">Nome</label><input name="nome" defaultValue={eu?.nome ?? ""} className="input" required /></div>
                 <div>
                   <label className="label">Cargo</label>
-                  <select name="cargo" defaultValue={eu?.cargo ?? ""} className="input" required>
+                  <select name="cargo" defaultValue={eu?.cargo ?? ""} className="input" required disabled={!!eu?.cargo && !admin} title={eu?.cargo && !admin ? "Só um administrador muda o cargo" : undefined}>
                     <option value="" disabled>Selecione…</option>
                     {[...new Set([...etapas.filter((e) => e.tipo !== "final").map((e) => e.area), "Gestão"])].map((c) => <option key={c}>{c}</option>)}
                   </select>
@@ -415,7 +435,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
               </Secao>
             );
           })()}
-        </div>
+        </fieldset>
       </div>
     </div>
   );

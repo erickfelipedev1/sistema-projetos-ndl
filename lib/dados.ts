@@ -9,7 +9,7 @@ export async function base() {
   const { data: { user } } = await supabase.auth.getUser();
   const [{ data: etapas }, { data: perfis }, { data: feriados }] = await Promise.all([
     supabase.from("etapas").select("*").order("ordem"),
-    supabase.from("profiles").select("id,nome,email,cargo,usuario").eq("tipo", "equipe").order("nome"),
+    supabase.from("profiles").select("id,nome,email,cargo,usuario,admin").eq("tipo", "equipe").order("nome"),
     supabase.from("feriados").select("data"),
   ]);
   const listaPerfis = (perfis ?? []) as Profile[];

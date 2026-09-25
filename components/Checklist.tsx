@@ -7,7 +7,7 @@ import { marcarChecklist } from "@/app/actions";
 import { limparPasso } from "@/lib/status";
 
 /** responsaveis: por modelo_id, quem recebe a demanda automática do item (ex.: "Isabella / Cris") */
-export default function Checklist({ itens, nomes, editavel = true, responsaveis = {} }: { itens: ChecklistItem[]; nomes: Record<string, string>; editavel?: boolean; responsaveis?: Record<number, string> }) {
+export default function Checklist({ itens, nomes, editavel = true, responsaveis = {}, bloqueados = {} }: { itens: ChecklistItem[]; nomes: Record<string, string>; editavel?: boolean; responsaveis?: Record<number, string>; bloqueados?: Record<string, string> }) {
   const [, start] = useTransition();
   const [lista, alternar] = useOptimistic(itens, (atual, id: string) => atual.map((i) => (i.id === id ? { ...i, feito: !i.feito } : i)));
   const feitos = lista.filter((i) => i.feito).length;
@@ -26,8 +26,8 @@ export default function Checklist({ itens, nomes, editavel = true, responsaveis 
         {lista.map((i) => (
           <li key={i.id} className={`group px-3 py-2 ${i.feito ? "bg-sunken/60" : ""}`}>
             <div className="flex items-start gap-2.5">
-              <input type="checkbox" className="mt-[3px] h-4 w-4 shrink-0 cursor-pointer" checked={i.feito} disabled={!editavel}
-                aria-label={i.titulo}
+              <input type="checkbox" className="mt-[3px] h-4 w-4 shrink-0 cursor-pointer" checked={i.feito} disabled={!editavel || !!bloqueados[i.id]}
+                aria-label={i.titulo} title={bloqueados[i.id]}
                 onChange={() => start(async () => { alternar(i.id); await marcarChecklist(i.id, !i.feito); })} />
               <details className="min-w-0 flex-1">
                 <summary className="flex cursor-pointer items-start justify-between gap-2">

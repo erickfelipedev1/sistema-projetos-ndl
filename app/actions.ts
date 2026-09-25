@@ -13,22 +13,23 @@ function falhou(msg: string): never {
   throw new Error(msg);
 }
 
+async function exigirAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase.rpc("is_admin");
+  if (data !== true) falhou("Só um administrador pode alterar a configuração do fluxo");
+}
+
 export async function criarProcesso(fd: FormData) {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("criar_processo", {
+  const { data, error } = await supabase.rpc("criar_processo_completo", {
     p_cliente: txt(fd, "cliente"),
     p_plano: txt(fd, "plano"),
     p_descricao: txt(fd, "descricao"),
     p_certificacao: fd.get("certificacao") === "on",
     p_cliente_id: txt(fd, "cliente_id") || null,
+    p_contato: txt(fd, "contato") || null,
+    p_gerenciamento: txt(fd, "gerenciamento") || null,
   });
   if (error) falhou(error.message);
-  const contato = txt(fd, "contato");
-  const ger = txt(fd, "gerenciamento");
-  if (contato || ger) {
-    await supabase.from("processos").update({ contato: contato || null, gerenciamento: ger || null }).eq("id", data);
-    if (ger) await supabase.rpc("sincronizar_checklist", { p_processo_id: data });
-  }
   revalidatePath("/", "layout");
   redirect(`/processos/${data}`);
 }
@@ -36,7 +37,7 @@ export async function criarProcesso(fd: FormData) {
 export async function avancarProcesso(fd: FormData) {
   const supabase = await createClient();
   const id = txt(fd, "processo_id");
-  const { error } = await supabase.rpc("avancar_processo", { p_processo_id: id, p_obs: txt(fd, "obs") });
+  const { error } = await supabase.rpc("avancar_etapa", { p_processo_id: id, p_obs: txt(fd, "obs") });
   if (error) falhou(error.message);
   revalidatePath("/", "layout");
 }
@@ -44,7 +45,7 @@ export async function avancarProcesso(fd: FormData) {
 export async function retornarProcesso(fd: FormData) {
   const supabase = await createClient();
   const id = txt(fd, "processo_id");
-  const { error } = await supabase.rpc("retornar_processo", { p_processo_id: id, p_motivo: txt(fd, "motivo") });
+  const { error } = await supabase.rpc("retornar_etapa", { p_processo_id: id, p_motivo: txt(fd, "motivo") });
   if (error) falhou(error.message);
   revalidatePath("/", "layout");
 }
@@ -104,10 +105,8 @@ export async function editarProcesso(fd: FormData) {
     })
     .eq("id", id);
   if (error) falhou(error.message);
-  const { error: e2 } = await supabase.rpc("recalcular_prazos", { p_processo_id: id });
+  const { error: e2 } = await supabase.rpc("recalcular_prazos_seguro", { p_processo_id: id });
   if (e2) falhou(e2.message);
-  const { error: e3 } = await supabase.rpc("sincronizar_checklist", { p_processo_id: id });
-  if (e3) falhou(e3.message);
   revalidatePath("/", "layout");
 }
 
@@ -125,6 +124,7 @@ export async function cancelarProcesso(fd: FormData) {
 
 export async function salvarEtapa(fd: FormData) {
   const supabase = await createClient();
+  await exigirAdmin(supabase);
   const id = Number(txt(fd, "id"));
   const prazo = txt(fd, "prazo_dias_uteis");
   const num = (k: string) => (txt(fd, k) === "" ? null : Number(txt(fd, k)));
@@ -153,6 +153,7 @@ export async function salvarEtapa(fd: FormData) {
 export async function aplicarResponsaveisEmAndamento(fd: FormData) {
   // aplica os responsáveis padrão da etapa aos processos que estão nela agora
   const supabase = await createClient();
+  await exigirAdmin(supabase);
   const id = Number(txt(fd, "id"));
   const { data: etapa } = await supabase.from("etapas").select("responsaveis_padrao").eq("id", id).single();
   if (!etapa) return;
@@ -183,7 +184,7 @@ export async function salvarMeuPerfil(fd: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-  const { error } = await supabase.from("profiles").update({ nome: txt(fd, "nome"), cargo: txt(fd, "cargo") || null }).eq("id", user.id);
+  const { error } = await supabase.from("profiles").update({ nome: txt(fd, "nome"), ...(txt(fd, "cargo") ? { cargo: txt(fd, "cargo") } : {}) }).eq("id", user.id);
   if (error) falhou(error.message);
   await supabase.rpc("vincular_minhas_etapas");
   revalidatePath("/", "layout");
@@ -210,6 +211,7 @@ export async function marcarChecklist(id: string, feito: boolean) {
 
 export async function salvarItemChecklist(fd: FormData) {
   const supabase = await createClient();
+  await exigirAdmin(supabase);
   const id = Number(txt(fd, "id"));
   const payload = {
     etapa_id: Number(txt(fd, "etapa_id")),
@@ -272,6 +274,7 @@ export async function definirSituacao(fd: FormData) {
 
 export async function salvarResponsaveisPadrao(fd: FormData) {
   const supabase = await createClient();
+  await exigirAdmin(supabase);
   const id = Number(txt(fd, "id"));
   const ids = fd.getAll("responsaveis_padrao").map(String).filter(Boolean);
   const { error } = await supabase.from("etapas").update({ responsaveis_padrao: ids, responsaveis_label: txt(fd, "responsaveis_label") || null }).eq("id", id);
@@ -285,6 +288,7 @@ export async function salvarResponsaveisPadrao(fd: FormData) {
 
 export async function salvarOrdemEtapas(fd: FormData) {
   const supabase = await createClient();
+  await exigirAdmin(supabase);
   const pares = [...fd.entries()].filter(([k]) => k.startsWith("ordem_")).map(([k, v]) => [Number(k.slice(6)), Number(v)] as const);
   for (const [id, ordem] of pares) {
     const { error } = await supabase.from("etapas").update({ ordem }).eq("id", id);
@@ -390,4 +394,22 @@ export async function registrarCobranca(fd: FormData) {
   const { error } = await supabase.rpc("registrar_cobranca", { p_pe_id: txt(fd, "pe_id"), p_obs: txt(fd, "obs") || null });
   if (error) falhou(error.message);
   revalidatePath("/", "layout");
+}
+
+// ---------------------------------------------------------------------
+// Administrador: cargo e acesso de administrador de uma pessoa
+// ---------------------------------------------------------------------
+export async function definirPessoa(fd: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("definir_pessoa", {
+    p_user: txt(fd, "id"), p_cargo: txt(fd, "cargo"), p_admin: fd.get("admin") === "on",
+  });
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function souAdmin() {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("is_admin");
+  return data === true;
 }

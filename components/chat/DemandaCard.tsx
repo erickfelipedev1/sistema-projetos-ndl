@@ -11,7 +11,7 @@ export default function DemandaCard({ m, meuId, nomes, processo, onStatus }: {
   const aberta = m.demanda_status === "aberta";
   const hoje = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
   const vencida = aberta && m.demanda_prazo && m.demanda_prazo < hoje;
-  const posso = m.demanda_para === meuId || m.autor === meuId;
+  const posso = m.demanda_para === meuId || (m.autor === meuId && !m.checklist_id);
   return (
     <div className={`mt-1.5 max-w-lg rounded-md border px-3 py-2 ${aberta ? (vencida ? "border-bad/40 bg-bad-soft/50" : "border-warn/40 bg-warn-soft/60") : "border-ok/30 bg-ok-soft/60"}`}>
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
