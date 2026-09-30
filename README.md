@@ -1,141 +1,108 @@
-# Sistema de Organização (v1)
+# Controle de Processos (sistema-projetos-ndl v2)
 
-Três peças do sistema "tipo Notion" que a chefe pediu, já no mesmo
-projeto, com o mesmo login:
+Fluxo: CS (apresentação/montagem) → Projetos (Flex 10 · Full 15 · Premium 25) → Agenciamento (cotação, 1 ou 2 c/ certificação) → Projetos (estimativa, 2) → CS (apresentação da estimativa) → CX → Agenciamento (booking) → Viagem → Desembaraço → Liberado → Transporte → Chegou.
+Os prazos são em dias úteis (sem fim de semana e sem os feriados cadastrados).
 
-- **Tarefas** (`/board`): quadro A Fazer / Em Andamento / Concluído, com
-  sincronização em tempo real entre todo mundo logado ao mesmo tempo.
-- **Wiki** (`/wiki`): páginas de texto rico com editor de blocos (tipo
-  Notion de verdade), usando a biblioteca open-source
-  [BlockNote](https://www.blocknotejs.org/) — a mesma peça de editor usada
-  por diversos clones de Notion por aí, só que plugada direto no nosso
-  próprio banco em vez de vir com um app inteiro de terceiros junto.
-- **Mensagens** (`/chat`): conversas diretas (1 pra 1) entre pessoas do
-  time, em tempo real.
+## 1. Banco (Supabase)
+SQL Editor → New query → cole `supabase/001_controle_processos.sql` → Run. Depois, uma query de cada vez, `002_prazo_por_plano_certificacao.sql`, `003_cargo_no_cadastro.sql`, `004_login_por_usuario.sql`, `005_checklist_sourcing.sql`, `006_fechamento_gerenciamento_emails.sql` e `007_situacao_proxima_acao.sql` → Run.
+Cria as tabelas novas e cadastra as 11 etapas e os feriados de 2026/2027. As tabelas antigas do sistema não são apagadas.
 
-**Stack:** Next.js (App Router) + Supabase (banco + autenticação) +
-Tailwind + BlockNote/Mantine (editor da wiki), pronto pra abrir no Cursor e
-publicar na Vercel.
-
-> Este projeto foi montado aqui sem rodar `npm install`, porque o ambiente
-> onde ele foi gerado não tem acesso liberado ao registro do npm. Isso é
-> normal — é só rodar `npm install` na sua máquina/Cursor, onde o acesso é
-> livre, que os pacotes baixam normalmente.
-
-## 1. Criar o projeto no Supabase
-
-1. Crie uma conta/projeto em [supabase.com](https://supabase.com) (tem plano gratuito).
-2. Em **Project Settings → API**, copie a **Project URL** e a **anon public key**.
-3. Em **SQL Editor**, cole e rode, nessa ordem, os três arquivos de
-   `supabase/migrations/` (0001, depois 0002, depois 0003) — isso cria as
-   tabelas `tasks`, `pages`, `profiles` e `messages`, as permissões de
-   acesso e liga o tempo real. A migration 0003 também cria o gatilho que
-   registra automaticamente cada pessoa que se cadastra (necessário pra
-   listar quem dá pra mandar mensagem).
-4. (Opcional, recomendado pra protótipo interno) Em **Authentication → Providers → Email**,
-   desative "Confirm email" pra não depender de configurar envio de e-mail
-   agora. Dá pra reativar depois.
-
-## 2. Rodar localmente
-
-```bash
-cd sistema-tarefas
-cp .env.local.example .env.local
-# edite .env.local com a URL e a anon key do seu projeto Supabase
-
+## 2. Código (PowerShell, dentro da pasta do repositório)
+```powershell
+git checkout -b v2-processos
+Remove-Item -Recurse -Force app, components, lib, middleware.ts -ErrorAction SilentlyContinue
+# copie o conteúdo deste zip para a pasta (mantenha seu .env.local)
 npm install
 npm run dev
 ```
-
-Acesse `http://localhost:3000`, crie sua conta (tela de cadastro) e comece
-a usar o quadro de tarefas, a wiki e as mensagens (links no topo da
-página). Pra testar o chat de verdade, crie uma segunda conta (outro
-e-mail) numa aba anônima.
-
-> A wiki não tem edição simultânea "multiplayer" (várias pessoas digitando
-> na mesma página ao mesmo tempo) neste v1 — cada edição salva sozinha
-> (autosave) uns segundos depois de parar de digitar. Se no futuro isso
-> virar necessidade real, dá pra ligar a colaboração em tempo real do
-> próprio BlockNote (usa Yjs) — é só um próximo passo, não uma reescrita.
-
-## 3. Publicar na Vercel
-
-1. Suba esse projeto pra um repositório no seu GitHub (do jeito que você já
-   faz com os outros projetos).
-2. Em [vercel.com](https://vercel.com), importe o repositório.
-3. Em **Environment Variables**, adicione as mesmas variáveis do
-   `.env.local`:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` (só necessária se for usar a Integração
-     com IA — ver seção 4)
-   - `NEXT_PUBLIC_SITE_URL` (opcional — a própria URL que a Vercel te dá,
-     ex: `https://seu-projeto.vercel.app`)
-4. Deploy. A Vercel te dá uma URL pra mandar pra chefe testar.
-
-## 4. Integração com IA (MCP)
-
-Cada pessoa do time pode conectar a própria IA (Claude Desktop, Claude
-Code etc.) direto no sistema — pedir "cria uma tarefa no projeto X" pra
-ela e a tarefa já é criada de verdade, em nome de quem pediu.
-
-1. Rode a migration `0031_personal_ai_tokens.sql` no SQL Editor do
-   Supabase (mesmo processo do passo 1).
-2. Em Supabase → **Project Settings → API → Project API keys**, copie a
-   chave **service_role (secret)** — é diferente da anon key, e é
-   secreta: nunca compartilhe nem cole em código que vai pro navegador.
-   Adicione ela como `SUPABASE_SERVICE_ROLE_KEY` no `.env.local` (local)
-   e nas Environment Variables da Vercel (produção).
-3. Rode `npm install` de novo (esse recurso usa duas bibliotecas novas:
-   `mcp-handler` e `@modelcontextprotocol/sdk`).
-4. Depois de publicado, cada pessoa entra no próprio Now Organiza, vai em
-   **Integração com IA** (menu lateral) e gera um token pessoal — a tela
-   já mostra o comando/endereço certo pra colar no Claude Desktop ou
-   Claude Code.
-
-As ferramentas disponíveis pra IA de cada um: criar tarefa, listar
-projetos, listar tarefas, editar uma tarefa (título, descrição, prazo,
-responsável e/ou status — dá pra mudar mais de uma coisa de uma vez),
-mudar só o status de uma tarefa e comentar numa tarefa — sempre
-respeitando a mesma visibilidade que a pessoa já tem dentro do próprio
-site (não dá pra ver/mexer em projeto de outra pessoa que não seja
-público).
-
-## Estrutura do projeto
-
+Abra http://localhost:3000. Quando estiver ok:
+```powershell
+git add -A
+git commit -m "v2: controle de processos"
+git push -u origin v2-processos
 ```
-app/
-  page.tsx            → redireciona para /login ou /board
-  login/page.tsx      → tela de entrar/criar conta
-  board/page.tsx      → quadro de tarefas (protegido por login)
-  wiki/page.tsx       → lista de páginas da wiki
-  wiki/[id]/page.tsx  → editor de uma página da wiki
-  chat/page.tsx       → lista de pessoas pra conversar
-  chat/[id]/page.tsx  → conversa direta com uma pessoa
-components/
-  TaskBoard.tsx       → lógica do quadro (adicionar, mover, excluir, tempo real)
-  PageEditor.tsx      → editor de blocos da wiki (BlockNote) + autosave
-  NewPageButton.tsx
-  ChatThread.tsx      → lógica da conversa (enviar, receber em tempo real)
-  NavTabs.tsx         → alterna entre Tarefas, Wiki e Mensagens
-  LogoutButton.tsx
-lib/
-  supabase/client.ts  → cliente Supabase pro navegador
-  supabase/server.ts  → cliente Supabase pro servidor
-  types.ts            → tipos das tarefas, páginas, perfis e mensagens
-middleware.ts          → protege as rotas (exige login)
-supabase/migrations/   → SQL do banco de dados (0001 tarefas, 0002 wiki, 0003 mensagens)
-```
+A Vercel gera um preview dessa branch. Depois de validar, faça o merge na main.
 
-## Próximos passos sugeridos (depois que a chefe validar)
+Variáveis de ambiente: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Project Settings → API Keys → service_role / secret). A service role fica só no servidor — nunca com prefixo NEXT_PUBLIC.
 
-- Adicionar descrição/prazo/responsável em cada tarefa.
-- Criar múltiplos quadros (um por área/projeto) em vez de um único quadro
-  geral.
-- Estrutura hierárquica de páginas na wiki (sub-páginas, como no Notion).
-- Trocar os botões ←/→ do quadro por arrastar-e-soltar (drag and drop).
-- Definir papéis (admin/membro) se precisar restringir quem exclui
-  tarefas/páginas.
-- Notificação (som/badge) quando chega mensagem nova fora da conversa
-  aberta.
-- Se um dia fizer sentido, canais em grupo (além das mensagens diretas).
+## 3. Primeiro uso
+1. Login = primeiro nome, senha inicial = primeiro nome + 2026 (ex.: larissa / larissa2026). Crie as contas em Configurações → "Criar contas de todos os responsáveis do fluxo", ou cada pessoa usa "Primeiro acesso" na tela de login. No primeiro login a pessoa troca a senha. Cada conta é vinculada automaticamente às etapas com o primeiro nome dela.
+2. Em **Configurações**, marque os responsáveis padrão de cada etapa. A partir daí, cada processo cai sozinho em "Minhas tarefas" da pessoa certa.
+3. Em **Processos → + Novo processo**, cadastre os processos que hoje estão no Monday, depois avance cada um até a etapa em que ele está.
+
+## Telas
+- **Painel**: KPIs (ativos, em atraso, vencem hoje/amanhã, tempo médio, previsão média), fluxo das 12 etapas, análise de gargalos (realizado × prazo), maiores atrasos, próximas entregas e atividades recentes.
+- **Processos**: kanban das 12 etapas ou lista, filtros (responsável, plano, certificação, status, etapa, busca), abas Ativos / Concluídos / Cancelados.
+- **Processo**: cabeçalho com responsável, etapa, previsão e status; timeline das 12 etapas; etapa atual com "por que está aqui?", concluir e avançar, ajustar prazo, trocar responsável; abas Checklist, E-mails, Comentários, Histórico e Dados.
+- **Novo processo**: assistente em 4 passos (Cliente, Configuração, Responsáveis, Revisão) com previsão de chegada calculada.
+- **Minhas tarefas**: o que está com você, por atrasadas / vencem hoje / próximas.
+- **Manual**: fluxo geral, cada etapa com checklist e modelos relacionados, saudação, formulários, INPI e tabela de prazos.
+- **E-mails**: biblioteca de modelos preenchidos com os dados de um processo.
+- **Configurações**: Fluxo, Equipe, Operação e Sistema.
+
+## Estrutura do código
+- `components/ui/`: componentes compartilhados (KpiCard, StatusBadge, ProgressBar, Avatar, Tabs, FilterBar, Modal/Drawer, Menu, EmptyState, ActivityTimeline, SubmitButton).
+- `components/processos/`: ProcessCard, StageColumn, ProcessTimeline, NovoProcessoWizard.
+- `components/painel/`: FlowStrip, BottleneckChart.
+- `lib/status.ts`: regras de status, prazo e "motivo" usadas em todas as telas. `lib/dados.ts`: consultas e cálculos (previsão, médias).
+- Cores e tipografia: tokens em `app/globals.css` (`@theme`).
+
+## v9 — Clientes, portal do cliente, chat e anexos
+
+1. Rode `supabase/008_clientes_portal_chat_anexos.sql` no SQL Editor (ou o `000_tudo.sql`, que já inclui tudo).
+   - Cria o cadastro de clientes e vincula cada processo existente ao seu cliente (pelo nome da empresa).
+   - Cria o bucket privado `anexos` no Storage (confira em Storage › Buckets).
+2. **Clientes** (`/clientes`): cadastro, processos, arquivos do cliente e acesso ao portal.
+3. **Portal do cliente** (`/portal`): o cliente entra com o usuário gerado e vê só as etapas e datas.
+4. **Chat e demandas** (`/chat`): canal Geral, conversas diretas e demandas com responsável, processo e prazo.
+5. **Anexos**: aba Anexos no processo (por etapa + arquivos gerais) e botão "Anexar arquivo" na etapa atual.
+6. Recomendado: em Supabase › Authentication › Sign In / Providers, desligue "Allow new users to sign up" (as contas são criadas pelo servidor).
+
+## v10 — Aguardando o cliente (Onboarding e Apresentação da estimativa)
+
+Rode `supabase/009_aguardando_cliente.sql` (já incluído no `000_tudo.sql`).
+
+- A etapa 1 passa a se chamar **Onboarding**. O checklist dela é: enviar o onboarding (1 dia útil), enviar o formulário, aguardar o formulário e mandar o e-mail para Projetos.
+- **Apresentação da estimativa**: marcar a reunião de sourcing (1 dia útil), aguardar a devolutiva e mandar a devolutiva para o CX.
+- Enquanto o próximo item é de "espera do cliente", o prazo fica pausado e a etapa não entra como atrasada. A cada 7 dias aparece "Cobrar cliente", e o botão "Registrar cobrança" guarda a cobrança no histórico.
+- Quando o item de espera é marcado, a etapa ganha 1 dia útil (configurável) para terminar.
+- Em Configurações › Checklists, qualquer item pode virar "Espera do cliente".
+- No portal, o cliente vê "Estamos aguardando o formulário" quando a etapa depende dele.
+
+## v11 — Cotação de frete e Estimativa dentro de Projetos
+
+Rode `supabase/010_projetos_cotacao_estimativa.sql` (já incluído no `000_tudo.sql`).
+
+- O fluxo passa a ter 10 etapas. Cotação de frete e Estimativa de custo viram itens do checklist de **Projetos**, e o prazo 10/15/25 já cobre esses itens.
+- Os itens com responsável mandam uma **demanda automática** no chat quando o item anterior é marcado:
+  - Cotação internacional: Isabella/Cris, 1 dia útil (2 com certificação).
+  - Cotação rodoviária: Isabella/Cris, 1 dia útil.
+  - Montagem da estimativa: Alycia, 2 dias úteis.
+- A demanda aparece em Minhas tarefas › "Demandas para você" e no Chat. Concluir a demanda marca o item no checklist, e marcar o item conclui a demanda.
+- Processos que estavam em Cotação ou Estimativa voltam para Projetos no ponto certo do checklist, com o prazo original.
+- Em Configurações › Checklists, cada item pode ter responsável e prazo próprios.
+
+## v12 — Permissões por área
+
+Rode `supabase/011_permissoes_por_area.sql` (já incluído no `000_tudo.sql`).
+
+- **Todo mundo vê tudo**, e qualquer pessoa pode comentar e anexar arquivos.
+- **Marcar checklist, avançar, voltar, prazo, responsável, situação e cobrança** de uma etapa ficam liberados só para:
+  - quem é da área (cargo igual à área da etapa, ex.: CS no Onboarding);
+  - quem é responsável pela etapa;
+  - administradores.
+- **Itens com responsável próprio** (cotação → Isabella/Cris, estimativa → Alycia) só podem ser marcados por essas pessoas. A demanda ligada ao item só pode ser concluída por quem a recebeu.
+- **Administrador**: altera a configuração do fluxo e define o cargo e o acesso de administrador de cada pessoa em Configurações › Equipe › Usuários.
+  - Depois que o cargo de alguém é definido, só um administrador consegue mudá-lo.
+  - Quem já tem cargo de Gestão vira administrador ao rodar o SQL. Se ninguém tiver, o Erick vira.
+- As regras valem no banco de dados, não só na tela.
+
+## v14 — Importação do Monday + status Pausado
+
+1. Rode `supabase/012_pausado_importacao_monday.sql` (já incluído no `000_tudo.sql`).
+2. Rode `supabase/013_dados_monday.sql`. Ele importa os 97 itens do quadro "Clientes | Projetos". Pode rodar de novo sem duplicar nada.
+   - Os 45 ativos entram na etapa Projeto, com a data de início e o prazo (término) que estavam no Monday.
+   - Os 9 finalizados com Ordem = Sim entram ativos em CX · Ordem. Os outros 33 finalizados entram como Concluídos (histórico).
+   - Os 10 pausados entram com o novo status **Pausado** (aba própria, com botão para retomar).
+   - Os clientes são criados pelo CNPJ ou pelo nome. Produto vira a descrição do processo. Responsável, prioridade, score e links dos arquivos ficam registrados no histórico de cada processo.
+   - O serviço "Estimativa de custos" entra sem plano.
