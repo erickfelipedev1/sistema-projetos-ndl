@@ -3,15 +3,24 @@
 import { useOptimistic, useTransition } from "react";
 import { ChevronRight, Hourglass, UserRound } from "lucide-react";
 import type { ChecklistItem } from "@/lib/types";
-import { marcarChecklist } from "@/app/actions";
+import { marcarChecklist, alterarPrazoItemChecklist } from "@/app/actions";
 import { limparPasso } from "@/lib/status";
+
+type Acao = { tipo: "feito"; id: string } | { tipo: "prazo"; id: string; prazo_em: string | null };
 
 /** responsaveis: por modelo_id, quem recebe a demanda automática do item (ex.: "Isabella / Cris") */
 export default function Checklist({ itens, nomes, editavel = true, responsaveis = {}, bloqueados = {} }: { itens: ChecklistItem[]; nomes: Record<string, string>; editavel?: boolean; responsaveis?: Record<number, string>; bloqueados?: Record<string, string> }) {
   const [, start] = useTransition();
-  const [lista, alternar] = useOptimistic(itens, (atual, id: string) => atual.map((i) => (i.id === id ? { ...i, feito: !i.feito } : i)));
+  const [lista, despachar] = useOptimistic(itens, (atual, acao: Acao) =>
+    atual.map((i) => {
+      if (i.id !== acao.id) return i;
+      if (acao.tipo === "feito") return { ...i, feito: !i.feito };
+      return { ...i, prazo_em: acao.prazo_em };
+    })
+  );
   const feitos = lista.filter((i) => i.feito).length;
   const pct = lista.length ? Math.round((feitos / lista.length) * 100) : 0;
+  const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }); // yyyy-mm-dd
 
   return (
     <div>
@@ -23,12 +32,14 @@ export default function Checklist({ itens, nomes, editavel = true, responsaveis 
         <span className="num shrink-0 text-xs text-muted">{feitos}/{lista.length}</span>
       </div>
       <ul className="divide-y divide-line rounded-md border border-line">
-        {lista.map((i) => (
+        {lista.map((i) => {
+          const atrasado = !!(i.prazo_em && !i.feito && i.prazo_em < hoje);
+          return (
           <li key={i.id} className={`group px-3 py-2 ${i.feito ? "bg-sunken/60" : ""}`}>
             <div className="flex items-start gap-2.5">
               <input type="checkbox" className="mt-[3px] h-4 w-4 shrink-0 cursor-pointer" checked={i.feito} disabled={!editavel || !!bloqueados[i.id]}
                 aria-label={i.titulo} title={bloqueados[i.id]}
-                onChange={() => start(async () => { alternar(i.id); await marcarChecklist(i.id, !i.feito); })} />
+                onChange={() => start(async () => { despachar({ tipo: "feito", id: i.id }); await marcarChecklist(i.id, !i.feito); })} />
               <details className="min-w-0 flex-1">
                 <summary className="flex cursor-pointer items-start justify-between gap-2">
                   <span className={`text-[13px] leading-5 ${i.feito ? "text-muted line-through decoration-subtle" : "text-ink"}`}>
@@ -49,9 +60,16 @@ export default function Checklist({ itens, nomes, editavel = true, responsaveis 
                 </summary>
                 {i.descricao && <p className="mt-1.5 mb-1 whitespace-pre-line text-xs leading-relaxed text-muted">{i.descricao}</p>}
               </details>
+              {!i.feito && (
+                <input type="date" value={i.prazo_em ?? ""} disabled={!editavel}
+                  title="Prazo deste item — clique para adiantar ou atrasar"
+                  className={`num mt-[1px] h-6 w-[108px] shrink-0 rounded border px-1 text-[11px] ${atrasado ? "border-bad-ink/40 bg-bad-soft text-bad-ink" : "border-line bg-surface text-subtle"} disabled:opacity-50`}
+                  onChange={(e) => { const v = e.target.value || null; start(async () => { despachar({ tipo: "prazo", id: i.id, prazo_em: v }); await alterarPrazoItemChecklist(i.id, v); }); }} />
+              )}
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );

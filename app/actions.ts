@@ -209,6 +209,13 @@ export async function marcarChecklist(id: string, feito: boolean) {
   revalidatePath("/", "layout");
 }
 
+export async function alterarPrazoItemChecklist(id: string, prazo_em: string | null) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("processo_checklist").update({ prazo_em: prazo_em || null }).eq("id", id);
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
 export async function salvarItemChecklist(fd: FormData) {
   const supabase = await createClient();
   await exigirAdmin(supabase);
