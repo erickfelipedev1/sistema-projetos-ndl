@@ -78,7 +78,7 @@ function CardProcesso({ p }: { p: PortalProcesso }) {
 
 /** o que o cliente vê: só etapas e datas — sem responsáveis, checklist, comentários ou arquivos internos */
 export default function PortalView({ dados }: { dados: PortalDados }) {
-  if (!dados) return <EmptyState titulo="Acesso sem cliente vinculado" texto="Fale com a equipe NDL para liberar o seu acesso." />;
+  if (!dados) return <EmptyState titulo="Acesso sem cliente vinculado" texto="Fale com a equipe Jomex para liberar o seu acesso." />;
   const ativos = dados.processos.filter((p) => p.status === "ativo" || p.status === "pausado");
   const concluidos = dados.processos.filter((p) => p.status !== "ativo");
   return (

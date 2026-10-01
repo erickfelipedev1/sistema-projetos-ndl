@@ -15,7 +15,7 @@ export default function PortalAcesso({ clienteId, contato, usuarios, site }: { c
   const [cred, setCred] = useState<{ usuario: string; senha: string } | null>(null);
 
   const mensagem = cred
-    ? `Olá! Seu acesso ao portal de acompanhamento da NDL:\n\nEndereço: ${site}\nUsuário: ${cred.usuario}\nSenha provisória: ${cred.senha}\n\nNo primeiro acesso você vai escolher uma senha nova.`
+    ? `Olá! Seu acesso ao portal de acompanhamento da Jomex:\n\nEndereço: ${site}\nUsuário: ${cred.usuario}\nSenha provisória: ${cred.senha}\n\nNo primeiro acesso você vai escolher uma senha nova.`
     : "";
 
   async function criar() {

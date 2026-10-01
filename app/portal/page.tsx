@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sair } from "@/app/actions";
 import type { PortalDados } from "@/lib/types";
 import PortalView from "@/components/portal/PortalView";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,10 @@ export default async function Portal() {
       <header className="border-b border-white/10 bg-[#10304f]">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded bg-white text-[11px] font-bold text-[#10304f]">NDL</span>
+            <Image src="/logo.png" alt="Jomex" width={28} height={28} className="h-7 w-7 rounded object-cover" />
             <span className="leading-tight">
               <span className="block text-[13px] font-semibold text-white">Portal do cliente</span>
-              <span className="block text-[11px] text-white/50">Now Logistics Group</span>
+              <span className="block text-[11px] text-white/50">Jomex Comércio Exterior</span>
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -35,7 +36,7 @@ export default async function Portal() {
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">
         <PortalView dados={data as PortalDados} />
-        <p className="mt-8 text-center text-xs text-subtle">Dúvidas sobre o seu processo? Fale com o seu atendimento (CS) da NDL.</p>
+        <p className="mt-8 text-center text-xs text-subtle">Dúvidas sobre o seu processo? Fale com o seu atendimento (CS) da Jomex.</p>
       </main>
     </div>
   );
