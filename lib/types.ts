@@ -134,6 +134,7 @@ export type ChecklistItem = {
   aguarda_cliente: boolean;
   prazo_depois: number | null;
   prazo_em: string | null;
+  responsavel_id: string | null;
 };
 
 export type ChecklistModelo = {

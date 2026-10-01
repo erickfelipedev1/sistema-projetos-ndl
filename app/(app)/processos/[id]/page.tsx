@@ -59,6 +59,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   const idxAtual = atual ? etapas.indexOf(atual) : -1;
   const proxima = idxAtual >= 0 ? etapas[idxAtual + 1] : undefined;
   const nomes = Object.fromEntries(perfis.map((pf) => [pf.id, pf.nome ?? pf.email ?? ""]));
+  const pessoasChecklist = perfis.map((pf) => ({ id: pf.id, nome: pf.nome ?? pf.email ?? "" }));
   const resp = (e: ProcessoEtapa) => nomesResponsaveis(e.responsaveis, e.responsaveis_label, mapaPerfis);
 
   const previsao = p.status === "ativo" ? previsaoChegada(etapas, feriados, hoje) : null;
@@ -77,7 +78,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   const checkAtual = atual ? checklist.filter((c) => c.processo_etapa_id === atual.id) : [];
   const bloqueados: Record<string, string> = {};
   for (const c of checkAtual) {
-    const resp = c.modelo_id ? responsaveisDoItem(modelosMap.get(c.modelo_id), perfis) : [];
+    const resp = c.responsavel_id ? [c.responsavel_id] : c.modelo_id ? responsaveisDoItem(modelosMap.get(c.modelo_id), perfis) : [];
     if (!podeMarcarItem(eu, resp, atual)) {
       bloqueados[c.id] = resp.length ? `Só ${resp.map((x) => mapaPerfis.get(x)?.nome).filter(Boolean).join(" / ")} pode marcar` : `Só ${atual?.area ?? "a área da etapa"} pode marcar`;
     }
@@ -334,10 +335,10 @@ export default async function DetalheProcesso({ params, searchParams }: { params
             <div className="border-t border-line p-4">
               {tab === "checklist" && (
                 <div className="space-y-4">
-                  {checkAtual.length > 0 ? (
+                  {atual ? (
                     <div>
-                      <p className="mb-2 text-xs font-medium text-muted">{atual ? nomeCurto(atual.nome) : ""}</p>
-                      <Checklist itens={checkAtual} nomes={nomes} responsaveis={respItens} bloqueados={bloqueados} />
+                      <p className="mb-2 text-xs font-medium text-muted">{nomeCurto(atual.nome)}</p>
+                      <Checklist itens={checkAtual} nomes={nomes} responsaveis={respItens} bloqueados={bloqueados} pessoas={pessoasChecklist} processoEtapaId={atual.id} />
                     </div>
                   ) : <EmptyState compacto titulo="Esta etapa não tem checklist" texto="Itens podem ser configurados em Configurações › Checklists." />}
                   {!p.gerenciamento && p.status === "ativo" && (

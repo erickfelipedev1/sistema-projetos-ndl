@@ -216,6 +216,36 @@ export async function alterarPrazoItemChecklist(id: string, prazo_em: string | n
   revalidatePath("/", "layout");
 }
 
+export async function alterarResponsavelItemChecklist(id: string, responsavel_id: string | null) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("processo_checklist").update({ responsavel_id: responsavel_id || null }).eq("id", id);
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function adicionarItemChecklist(processo_etapa_id: string, titulo: string) {
+  if (!titulo.trim()) falhou("Título do item é obrigatório");
+  const supabase = await createClient();
+  const { data: ultimo } = await supabase
+    .from("processo_checklist")
+    .select("ordem")
+    .eq("processo_etapa_id", processo_etapa_id)
+    .order("ordem", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const ordem = (ultimo?.ordem ?? 0) + 1;
+  const { error } = await supabase.from("processo_checklist").insert({ processo_etapa_id, titulo: titulo.trim(), ordem });
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function removerItemChecklist(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("processo_checklist").delete().eq("id", id);
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
 export async function salvarItemChecklist(fd: FormData) {
   const supabase = await createClient();
   await exigirAdmin(supabase);
