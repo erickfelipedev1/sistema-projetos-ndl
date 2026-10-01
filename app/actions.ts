@@ -246,6 +246,22 @@ export async function removerItemChecklist(id: string) {
   revalidatePath("/", "layout");
 }
 
+export async function editarItemChecklist(id: string, titulo: string, descricao: string | null) {
+  if (!titulo.trim()) falhou("Título do item é obrigatório");
+  const supabase = await createClient();
+  const { error } = await supabase.from("processo_checklist").update({ titulo: titulo.trim(), descricao: descricao?.trim() || null }).eq("id", id);
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function reordenarChecklist(ids: string[]) {
+  const supabase = await createClient();
+  const { error } = await Promise.all(ids.map((id, idx) => supabase.from("processo_checklist").update({ ordem: (idx + 1) * 10 }).eq("id", id)))
+    .then((resultados) => resultados.find((r) => r.error) ?? { error: null });
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
 export async function salvarItemChecklist(fd: FormData) {
   const supabase = await createClient();
   await exigirAdmin(supabase);
