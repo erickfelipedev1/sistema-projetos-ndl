@@ -37,9 +37,9 @@ export default function Sidebar({ nome, cargo, contagens, sair }: { nome: string
   return (
     <aside className="sticky top-0 flex h-screen w-16 shrink-0 flex-col bg-[#10304f] lg:w-[228px]">
       <Link href="/" className="flex h-14 items-center gap-2.5 border-b border-white/10 px-4">
-        <Image src="/logo.png" alt="Jomex" width={28} height={28} className="h-7 w-7 shrink-0 rounded object-cover" />
+        <Image src="/logo.png" alt="NowTrace" width={28} height={28} className="h-7 w-7 shrink-0 rounded-md object-cover" />
         <span className="hidden leading-tight lg:block">
-          <span className="block text-[13px] font-semibold text-white">Jomex Projetos</span>
+          <span className="block text-[13px] font-semibold text-white">NowTrace</span>
           <span className="block text-[11px] text-white/50">Central de operações</span>
         </span>
       </Link>

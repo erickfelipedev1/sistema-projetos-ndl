@@ -6,7 +6,9 @@ import { nomesResponsaveis } from "./format";
 
 export async function base() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // sessão lida do cookie local (sem ida ao servidor) — o middleware já validou nesta requisição
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   const [{ data: etapas }, { data: perfis }, { data: feriados }] = await Promise.all([
     supabase.from("etapas").select("*").order("ordem"),
     supabase.from("profiles").select("id,nome,email,cargo,usuario,admin").eq("tipo", "equipe").order("nome"),

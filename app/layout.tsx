@@ -3,7 +3,7 @@ import "@fontsource-variable/inter";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Jomex Projetos — Central de operações",
+  title: "NowTrace — Central de operações",
   description: "Controle de processos do time de projetos",
 };
 

@@ -7,16 +7,20 @@ import { sair } from "@/app/actions";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase.from("profiles").select("nome,cargo,trocar_senha,tipo").eq("id", user!.id).maybeSingle();
+  // sessão lida do cookie local — já validada pelo middleware nesta mesma requisição,
+  // então não precisa de outra ida ao servidor de auth (getUser() faria essa ida de novo)
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
+  if (!user) redirect("/login");
+  const [{ data: perfil }, { count: ativos }, { data: minhas }, { data: conversas }, { count: demandas }] = await Promise.all([
+    supabase.from("profiles").select("nome,cargo,trocar_senha,tipo").eq("id", user.id).maybeSingle(),
+    supabase.from("processos").select("id", { count: "exact", head: true }).eq("status", "ativo"),
+    supabase.from("v_etapas_atuais").select("atrasada").contains("responsaveis", [user.id]),
+    supabase.rpc("chat_conversas"),
+    supabase.from("mensagens").select("id", { count: "exact", head: true }).eq("demanda_para", user.id).eq("demanda_status", "aberta"),
+  ]);
   if (perfil?.trocar_senha) redirect("/trocar-senha");
   if (perfil?.tipo === "cliente") redirect("/portal");
-  const [{ count: ativos }, { data: minhas }, { data: conversas }, { count: demandas }] = await Promise.all([
-    supabase.from("processos").select("id", { count: "exact", head: true }).eq("status", "ativo"),
-    supabase.from("v_etapas_atuais").select("atrasada").contains("responsaveis", [user!.id]),
-    supabase.rpc("chat_conversas"),
-    supabase.from("mensagens").select("id", { count: "exact", head: true }).eq("demanda_para", user!.id).eq("demanda_status", "aberta"),
-  ]);
   const naoLidas = ((conversas ?? []) as { nao_lidas: number }[]).reduce((s, c) => s + (c.nao_lidas ?? 0), 0);
 
   return (

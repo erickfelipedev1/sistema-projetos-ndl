@@ -20,10 +20,12 @@ export const dynamic = "force-dynamic";
 export default async function Minhas({ searchParams }: { searchParams: Promise<{ aba?: string }> }) {
   const { aba = "todas" } = await searchParams;
   const { supabase, user, mapaPerfis } = await base();
-  const { data } = await supabase.from("v_etapas_atuais").select("*").contains("responsaveis", [user.id]).order("prazo_em", { ascending: true, nullsFirst: false });
+  const [{ data }, { data: demData }] = await Promise.all([
+    supabase.from("v_etapas_atuais").select("*").contains("responsaveis", [user.id]).order("prazo_em", { ascending: true, nullsFirst: false }),
+    supabase.from("mensagens").select("*, processos(codigo,cliente)")
+      .eq("demanda_para", user.id).eq("demanda_status", "aberta").order("demanda_prazo", { ascending: true, nullsFirst: false }),
+  ]);
   const todas = (data ?? []) as EtapaAtual[];
-  const { data: demData } = await supabase.from("mensagens").select("*, processos(codigo,cliente)")
-    .eq("demanda_para", user.id).eq("demanda_status", "aberta").order("demanda_prazo", { ascending: true, nullsFirst: false });
   const demandas = (demData ?? []) as (Mensagem & { processos: { codigo: string; cliente: string } | null })[];
   const hojeISO = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
   const eu = mapaPerfis.get(user.id);

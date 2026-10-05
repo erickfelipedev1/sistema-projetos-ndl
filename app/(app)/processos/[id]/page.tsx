@@ -34,7 +34,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   const { tab = "checklist" } = await searchParams;
   const { supabase, user, perfis, mapaPerfis, feriados, hoje } = await base();
 
-  const [{ data: proc }, { data: etapasData }, { data: eventosData }, { data: checkData }, { data: emailsData }, { data: anexosData }, { data: clientesData }] = await Promise.all([
+  const [{ data: proc }, { data: etapasData }, { data: eventosData }, { data: checkData }, { data: emailsData }, { data: anexosData }, { data: clientesData }, { data: modelosResp }] = await Promise.all([
     supabase.from("processos").select("*").eq("id", id).maybeSingle(),
     supabase.from("processo_etapas").select("*").eq("processo_id", id).order("ordem"),
     supabase.from("processo_eventos").select("*").eq("processo_id", id).order("created_at", { ascending: false }),
@@ -42,8 +42,8 @@ export default async function DetalheProcesso({ params, searchParams }: { params
     supabase.from("email_modelos").select("*").eq("ativo", true).order("ordem"),
     supabase.from("anexos").select("*").eq("processo_id", id).order("created_at", { ascending: false }),
     supabase.from("clientes").select("id,nome").order("nome"),
+    supabase.from("checklist_modelo").select("id,responsaveis,responsaveis_label"),
   ]);
-  const { data: modelosResp } = await supabase.from("checklist_modelo").select("id,responsaveis,responsaveis_label");
   const respItens: Record<number, string> = Object.fromEntries(((modelosResp ?? []) as { id: number; responsaveis: string[]; responsaveis_label: string | null }[])
     .map((m) => [m.id, (m.responsaveis ?? []).map((r) => mapaPerfis.get(r)?.nome).filter(Boolean).join(" / ") || m.responsaveis_label || ""])
     .filter(([, v]) => v));
