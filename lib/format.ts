@@ -17,8 +17,15 @@ export function dataHoraBR(d: string | null | undefined) {
   });
 }
 
+/** perfil sem nome costuma ter o e-mail no lugar: mostra só a parte antes do @, com iniciais maiúsculas */
+export function nomeExibicao(nome: string | null | undefined) {
+  const n = (nome ?? "").trim();
+  if (!n.includes("@")) return n;
+  return n.split("@")[0].split(/[._-]+/).filter(Boolean).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+}
+
 export function nomesResponsaveis(ids: string[], label: string | null, perfis: Map<string, Profile>) {
-  const nomes = ids.map((id) => perfis.get(id)?.nome).filter(Boolean) as string[];
+  const nomes = ids.map((id) => nomeExibicao(perfis.get(id)?.nome)).filter(Boolean) as string[];
   if (nomes.length) return nomes.join(" / ");
   return label ?? "Sem responsável";
 }

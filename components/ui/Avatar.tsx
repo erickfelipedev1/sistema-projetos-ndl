@@ -1,4 +1,5 @@
 import { iniciais } from "@/lib/status";
+import { nomeExibicao } from "@/lib/format";
 
 export default function Avatar({ nome, tamanho = 24, className = "" }: { nome: string | null | undefined; tamanho?: number; className?: string }) {
   return (
@@ -14,11 +15,12 @@ export default function Avatar({ nome, tamanho = 24, className = "" }: { nome: s
 }
 
 export function Pessoa({ nome, sub, tamanho = 24 }: { nome: string; sub?: string | null; tamanho?: number }) {
+  const exibir = nomeExibicao(nome);
   return (
-    <span className="inline-flex min-w-0 items-center gap-2">
-      <Avatar nome={nome} tamanho={tamanho} />
+    <span className="flex max-w-full min-w-0 items-center gap-2">
+      <Avatar nome={exibir} tamanho={tamanho} />
       <span className="min-w-0 leading-tight">
-        <span className="block truncate text-[13px] text-ink">{nome}</span>
+        <span className="block truncate text-[13px] text-ink" title={nome}>{exibir}</span>
         {sub && <span className="block truncate text-[11px] text-muted">{sub}</span>}
       </span>
     </span>
@@ -29,12 +31,12 @@ export function Pessoa({ nome, sub, tamanho = 24 }: { nome: string; sub?: string
 export function Responsavel({ ids, label, mapa, tamanho = 22, sub }: {
   ids: string[]; label: string | null; mapa: Map<string, { nome: string | null }>; tamanho?: number; sub?: string | null;
 }) {
-  const nomes = ids.map((id) => mapa.get(id)?.nome).filter(Boolean) as string[];
+  const nomes = ids.map((id) => nomeExibicao(mapa.get(id)?.nome)).filter(Boolean) as string[];
   if (!nomes.length) return <span className="text-[13px] text-muted">{label ?? "Sem responsável"}</span>;
   if (nomes.length === 1) return <Pessoa nome={nomes[0]} sub={sub} tamanho={tamanho} />;
   return (
-    <span className="inline-flex min-w-0 items-center gap-2">
-      <span className="flex -space-x-1.5">
+    <span className="flex max-w-full min-w-0 items-center gap-2">
+      <span className="flex shrink-0 -space-x-1.5">
         {nomes.slice(0, 3).map((n) => <Avatar key={n} nome={n} tamanho={tamanho} className="ring-2 ring-surface" />)}
       </span>
       <span className="truncate text-[13px] text-ink">{nomes.join(" / ")}</span>

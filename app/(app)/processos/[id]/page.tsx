@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowRight, CalendarClock, ChevronRight, CircleCheck, RotateCcw, XCircle, Pencil, RefreshCcw } from "lucide-react";
 import { base, previsaoChegada, duracaoUteis } from "@/lib/dados";
 import type { Anexo, ChecklistItem, EmailModelo, Evento, Processo, ProcessoEtapa } from "@/lib/types";
-import { dataBR, dataHoraBR, nomesResponsaveis, preencherModelo, GERENCIAMENTO_LABEL } from "@/lib/format";
+import { dataBR, dataHoraBR, nomeExibicao, nomesResponsaveis, preencherModelo, GERENCIAMENTO_LABEL } from "@/lib/format";
 import { diasUteisEntre, paraDataBR } from "@/lib/diasUteis";
 import { du, limparPasso, nomeCurto, prazoTexto, statusPrazo } from "@/lib/status";
 import Tabs from "@/components/ui/Tabs";
@@ -58,8 +58,8 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   const atual = etapas.find((e) => e.status === "em_andamento");
   const idxAtual = atual ? etapas.indexOf(atual) : -1;
   const proxima = idxAtual >= 0 ? etapas[idxAtual + 1] : undefined;
-  const nomes = Object.fromEntries(perfis.map((pf) => [pf.id, pf.nome ?? pf.email ?? ""]));
-  const pessoasChecklist = perfis.map((pf) => ({ id: pf.id, nome: pf.nome ?? pf.email ?? "" }));
+  const nomes = Object.fromEntries(perfis.map((pf) => [pf.id, nomeExibicao(pf.nome ?? pf.email)]));
+  const pessoasChecklist = perfis.map((pf) => ({ id: pf.id, nome: nomeExibicao(pf.nome ?? pf.email) }));
   const resp = (e: ProcessoEtapa) => nomesResponsaveis(e.responsaveis, e.responsaveis_label, mapaPerfis);
 
   const previsao = p.status === "ativo" ? previsaoChegada(etapas, feriados, hoje) : null;
@@ -236,7 +236,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                 <StatusBadge tipo={stAtual} texto={prazoTexto(diasAtual, atrasada, espera)} />
               </div>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-b border-line px-4 py-3 text-[13px] md:grid-cols-5">
-                <div><dt className="text-[11px] text-muted">Responsável</dt><dd className="mt-1"><Responsavel ids={atual.responsaveis} label={atual.responsaveis_label} mapa={mapaPerfis} /></dd></div>
+                <div className="min-w-0"><dt className="text-[11px] text-muted">Responsável</dt><dd className="mt-1 min-w-0"><Responsavel ids={atual.responsaveis} label={atual.responsaveis_label} mapa={mapaPerfis} /></dd></div>
                 <div><dt className="text-[11px] text-muted">Prazo</dt><dd className="mt-1">{atual.prazo_dias_uteis != null ? du(atual.prazo_dias_uteis) : "—"}</dd></div>
                 <div><dt className="text-[11px] text-muted">Início</dt><dd className="num mt-1">{dataHoraBR(atual.iniciado_em)}</dd></div>
                 <div><dt className="text-[11px] text-muted">Previsão</dt><dd className={`num mt-1 ${atrasada ? "font-medium text-bad-ink" : ""}`}>{aguardando ? <span className="text-primary">pausado</span> : dataBR(atual.prazo_em)}</dd></div>

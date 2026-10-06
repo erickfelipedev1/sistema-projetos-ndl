@@ -1,3 +1,4 @@
+import { nomeExibicao } from "@/lib/format";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ClipboardList, Hash } from "lucide-react";
@@ -25,8 +26,8 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ c
   ]);
   const conversas = (convData ?? []) as Conversa[];
   const processos = (procData ?? []) as { id: string; codigo: string; cliente: string }[];
-  const nome = (id: string | null) => perfis.find((p) => p.id === id)?.nome ?? "—";
-  const pessoas = perfis.map((p) => ({ id: p.id, nome: p.nome ?? p.email ?? "", cargo: p.cargo ?? null }));
+  const nome = (id: string | null) => nomeExibicao(perfis.find((p) => p.id === id)?.nome) || "—";
+  const pessoas = perfis.map((p) => ({ id: p.id, nome: nomeExibicao(p.nome ?? p.email), cargo: p.cargo ?? null }));
   const canais = conversas.filter((c) => c.tipo === "canal");
   const diretas = conversas.filter((c) => c.tipo === "direta").sort((a, b) => (b.ultima_em ?? "").localeCompare(a.ultima_em ?? ""));
   const comDireta = new Set(diretas.map((d) => d.outro_id));

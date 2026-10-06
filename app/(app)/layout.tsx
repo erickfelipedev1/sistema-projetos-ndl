@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import { createClient } from "@/lib/supabase/server";
 import { sair } from "@/app/actions";
+import { nomeExibicao } from "@/lib/format";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -27,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen">
       <Suspense fallback={<aside className="w-16 shrink-0 bg-[#10304f] lg:w-[228px]" />}>
         <Sidebar
-          nome={perfil?.nome ?? user?.email ?? ""}
+          nome={nomeExibicao(perfil?.nome ?? user?.email)}
           cargo={perfil?.cargo ?? null}
           contagens={{ ativos: ativos ?? 0, minhas: minhas?.length ?? 0, atrasadasMinhas: (minhas ?? []).filter((m) => m.atrasada).length, chat: naoLidas, demandas: demandas ?? 0 }}
           sair={sair}
