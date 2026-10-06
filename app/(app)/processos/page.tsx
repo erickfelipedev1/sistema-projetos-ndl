@@ -67,12 +67,26 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
     { nome: "etapa", rotulo: "Etapa", valor: sp.etapa ?? "", opcoes: etapas.filter((e) => e.ativo && e.tipo !== "final").map((e) => ({ valor: String(e.id), rotulo: `${e.ordem}. ${nomeCurto(e.nome)}` })) },
   ];
 
+  const PLANOS = ["Premium", "Full", "Flex"];
+  const plano = PLANOS.includes(sp.plano ?? "") ? sp.plano! : "";
+  const hrefPlano = (p: string) => {
+    const u = new URLSearchParams();
+    for (const [k, v] of Object.entries({ ...sp, plano: p })) if (v) u.set(k, v);
+    return `/processos?${u.toString()}`;
+  };
+  const abasPlano = (contar: boolean) => (
+    <Tabs ativo={plano || "todos"} className="mb-1" itens={[
+      { chave: "todos", rotulo: "Todos os planos", href: hrefPlano("") },
+      ...PLANOS.map((p) => ({ chave: p, rotulo: `Sourcing ${p}`, href: hrefPlano(p), ...(contar ? { contagem: todos.filter((e) => e.plano === p).length } : {}) })),
+    ]} />
+  );
+
   const abas = (
     <Tabs ativo={visao} itens={[
-      { chave: "ativos", rotulo: "Ativos", href: "/processos?visao=ativos", contagem: todos.length },
-      { chave: "concluido", rotulo: "Concluídos", href: "/processos?visao=concluido", contagem: nConc ?? 0 },
-      { chave: "pausado", rotulo: "Pausados", href: "/processos?visao=pausado", contagem: nPaus ?? 0 },
-      { chave: "cancelado", rotulo: "Cancelados", href: "/processos?visao=cancelado", contagem: nCanc ?? 0 },
+      { chave: "ativos", rotulo: "Ativos", href: `/processos?visao=ativos${plano ? `&plano=${plano}` : ""}`, contagem: plano ? todos.filter((e) => e.plano === plano).length : todos.length },
+      { chave: "concluido", rotulo: "Concluídos", href: `/processos?visao=concluido${plano ? `&plano=${plano}` : ""}`, contagem: nConc ?? 0 },
+      { chave: "pausado", rotulo: "Pausados", href: `/processos?visao=pausado${plano ? `&plano=${plano}` : ""}`, contagem: nPaus ?? 0 },
+      { chave: "cancelado", rotulo: "Cancelados", href: `/processos?visao=cancelado${plano ? `&plano=${plano}` : ""}`, contagem: nCanc ?? 0 },
     ]} />
   );
 
@@ -89,9 +103,10 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
     return (
       <div>
         {header}
+        {abasPlano(false)}
         {abas}
         <div className="mt-4 mb-3">
-          <FilterBar busca={sp.q} ocultos={{ visao }} limparHref={`/processos?visao=${visao}`} filtros={[filtros[1]]} />
+          <FilterBar busca={sp.q} ocultos={{ visao, ...(plano ? { plano } : {}) }} limparHref={`/processos?visao=${visao}${plano ? `&plano=${plano}` : ""}`} filtros={[]} />
         </div>
         <div className="card overflow-hidden">
           {lista.length ? (
@@ -133,9 +148,10 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
   return (
     <div>
       {header}
+      {abasPlano(true)}
       {abas}
       <div className="mt-4 mb-4 flex flex-wrap items-center justify-between gap-3">
-        <FilterBar busca={sp.q} ocultos={{ visao, view }} limparHref={`/processos?view=${view}`} filtros={filtros} />
+        <FilterBar busca={sp.q} ocultos={{ visao, view, ...(plano ? { plano } : {}) }} limparHref={`/processos?view=${view}${plano ? `&plano=${plano}` : ""}`} filtros={filtros.filter((x) => x.nome !== "plano")} />
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted"><strong className="num text-ink">{filtrados.length}</strong> de {todos.length}</span>
           <Segmented ativo={view} itens={[

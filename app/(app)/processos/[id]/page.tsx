@@ -289,13 +289,13 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                     <div className="flex justify-end"><SubmitButton>Concluir e avançar <ArrowRight size={14} /></SubmitButton></div>
                   </form>
                 </Modal>
-                <Modal rotulo={<><CalendarClock size={14} /> {atual.prazo_editavel ? "Definir data de chegada" : "Ajustar prazo"}</>} titulo={atual.prazo_editavel ? "Data prevista (ETA)" : "Ajustar prazo da etapa"}>
+                {(atual.prazo_editavel || eu?.admin) && <Modal rotulo={<><CalendarClock size={14} /> {atual.prazo_editavel ? "Definir data de chegada" : "Ajustar prazo"}</>} titulo={atual.prazo_editavel ? "Data prevista (ETA)" : "Ajustar prazo da etapa"}>
                   <form action={alterarPrazo} className="space-y-3">
                     <input type="hidden" name="processo_id" value={p.id} /><input type="hidden" name="pe_id" value={atual.id} /><input type="hidden" name="etapa_nome" value={atual.nome} />
                     <div><label className="label">Nova data</label><input type="date" name="prazo_em" defaultValue={atual.prazo_em ?? ""} className="input" /></div>
                     <div className="flex justify-end"><SubmitButton>Salvar prazo</SubmitButton></div>
                   </form>
-                </Modal>
+                </Modal>}
                 <Modal rotulo="Trocar responsável" titulo="Responsáveis desta etapa">
                   <form action={alterarResponsaveis} className="space-y-3">
                     <input type="hidden" name="processo_id" value={p.id} /><input type="hidden" name="pe_id" value={atual.id} /><input type="hidden" name="etapa_nome" value={atual.nome} />
@@ -338,7 +338,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                   {atual ? (
                     <div>
                       <p className="mb-2 text-xs font-medium text-muted">{nomeCurto(atual.nome)}</p>
-                      <Checklist itens={checkAtual} nomes={nomes} responsaveis={respItens} bloqueados={bloqueados} pessoas={pessoasChecklist} processoEtapaId={atual.id} />
+                      <Checklist podePrazo={!!eu?.admin} itens={checkAtual} nomes={nomes} responsaveis={respItens} bloqueados={bloqueados} pessoas={pessoasChecklist} processoEtapaId={atual.id} />
                     </div>
                   ) : <EmptyState compacto titulo="Esta etapa não tem checklist" texto="Itens podem ser configurados em Configurações › Checklists." />}
                   {!p.gerenciamento && p.status === "ativo" && (

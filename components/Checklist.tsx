@@ -8,6 +8,7 @@ import {
   editarItemChecklist, reordenarChecklist,
 } from "@/app/actions";
 import { limparPasso } from "@/lib/status";
+import { dataBR } from "@/lib/format";
 
 type Acao =
   | { tipo: "feito"; id: string }
@@ -20,8 +21,8 @@ type Acao =
 type Pessoa = { id: string; nome: string };
 
 /** responsaveis: por modelo_id, o rótulo padrão do modelo (ex.: "Isabella / Cris") — usado quando o item não tem responsável escolhido no processo */
-export default function Checklist({ itens, nomes, editavel = true, responsaveis = {}, bloqueados = {}, pessoas = [], processoEtapaId }: {
-  itens: ChecklistItem[]; nomes: Record<string, string>; editavel?: boolean; responsaveis?: Record<number, string>; bloqueados?: Record<string, string>;
+export default function Checklist({ itens, nomes, editavel = true, podePrazo = false, responsaveis = {}, bloqueados = {}, pessoas = [], processoEtapaId }: {
+  itens: ChecklistItem[]; nomes: Record<string, string>; editavel?: boolean; podePrazo?: boolean; responsaveis?: Record<number, string>; bloqueados?: Record<string, string>;
   pessoas?: Pessoa[]; processoEtapaId?: string;
 }) {
   const [, start] = useTransition();
@@ -153,12 +154,14 @@ export default function Checklist({ itens, nomes, editavel = true, responsaveis 
                   <option value="">sem responsável</option>
                   {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
-                {!i.feito && (
+                {!i.feito && (podePrazo ? (
                   <input type="date" value={i.prazo_em ?? ""} disabled={!editavel}
                     title="Prazo deste item — clique para adiantar ou atrasar"
                     className={`num h-6 w-[108px] rounded border px-1 text-[11px] ${atrasado ? "border-bad-ink/40 bg-bad-soft text-bad-ink" : "border-line bg-surface text-subtle"} disabled:opacity-50`}
                     onChange={(e) => { const v = e.target.value || null; start(async () => { despachar({ tipo: "prazo", id: i.id, prazo_em: v }); await alterarPrazoItemChecklist(i.id, v); }); }} />
-                )}
+                ) : (
+                  <span title="O prazo vem do plano — só um administrador altera" className={`num text-[11px] ${atrasado ? "text-bad-ink" : "text-subtle"}`}>{i.prazo_em ? dataBR(i.prazo_em) : "sem prazo"}</span>
+                ))}
                 <button type="button" title="Editar título e descrição" className="text-subtle hover:text-primary-2" onClick={() => abrirEdicao(i)}>
                   <Pencil size={13} />
                 </button>

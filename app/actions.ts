@@ -13,9 +13,9 @@ function falhou(msg: string): never {
   throw new Error(msg);
 }
 
-async function exigirAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function exigirAdmin(supabase: Awaited<ReturnType<typeof createClient>>, msg = "Só um administrador pode alterar a configuração do fluxo") {
   const { data } = await supabase.rpc("is_admin");
-  if (data !== true) falhou("Só um administrador pode alterar a configuração do fluxo");
+  if (data !== true) falhou(msg);
 }
 
 export async function criarProcesso(fd: FormData) {
@@ -61,6 +61,9 @@ export async function alterarPrazo(fd: FormData) {
   const processoId = txt(fd, "processo_id");
   const prazo = txt(fd, "prazo_em");
   const etapa = txt(fd, "etapa_nome");
+  // prazo vem do plano: só administrador altera (exceção: etapas de "data de chegada")
+  const { data: pe } = await supabase.from("processo_etapas").select("prazo_editavel").eq("id", peId).maybeSingle();
+  if (!pe?.prazo_editavel) await exigirAdmin(supabase, "Só um administrador pode alterar o prazo de uma etapa");
   const { error } = await supabase.from("processo_etapas").update({ prazo_em: prazo || null }).eq("id", peId);
   if (error) falhou(error.message);
   const [y, m, d] = prazo.split("-");
@@ -211,6 +214,7 @@ export async function marcarChecklist(id: string, feito: boolean) {
 
 export async function alterarPrazoItemChecklist(id: string, prazo_em: string | null) {
   const supabase = await createClient();
+  await exigirAdmin(supabase, "Só um administrador pode alterar o prazo de um item");
   const { error } = await supabase.from("processo_checklist").update({ prazo_em: prazo_em || null }).eq("id", id);
   if (error) falhou(error.message);
   revalidatePath("/", "layout");
