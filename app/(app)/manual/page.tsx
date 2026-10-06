@@ -37,7 +37,7 @@ export default async function Manual({ searchParams }: { searchParams: Promise<{
   };
 
   const NavLink = ({ href, ativo, children }: { href: string; ativo: boolean; children: React.ReactNode }) => (
-    <Link href={href} scroll={false} aria-current={ativo ? "page" : undefined}
+    <Link prefetch={false} href={href} scroll={false} aria-current={ativo ? "page" : undefined}
       className={`flex h-8 items-center gap-2 rounded-md px-2.5 text-[13px] ${ativo ? "bg-primary-soft font-medium text-primary" : "text-ink hover:bg-sunken"}`}>{children}</Link>
   );
 
@@ -72,7 +72,7 @@ export default async function Manual({ searchParams }: { searchParams: Promise<{
                       {etapas.map((e) => (
                         <tr key={e.id}>
                           <td className="num text-subtle">{String(e.ordem).padStart(2, "0")}</td>
-                          <td><Link href={`/manual?sec=etapa-${e.id}`} className="font-medium text-ink hover:text-primary-2">{e.nome}</Link></td>
+                          <td><Link prefetch={false} href={`/manual?sec=etapa-${e.id}`} className="font-medium text-ink hover:text-primary-2">{e.nome}</Link></td>
                           <td className="text-muted">{e.area}</td>
                           <td className="num">{metaCurta(e)}{e.prazo_editavel ? " · ajustável" : ""}</td>
                           <td>{respEtapa(e)}</td>
@@ -163,7 +163,7 @@ export default async function Manual({ searchParams }: { searchParams: Promise<{
                       <ul className="divide-y divide-line">
                         {modelos.map((m) => (
                           <li key={m.id}>
-                            <Link href={`/emails?modelo=${m.id}`} className="flex items-start gap-2.5 px-4 py-2.5 hover:bg-sunken">
+                            <Link prefetch={false} href={`/emails?modelo=${m.id}`} className="flex items-start gap-2.5 px-4 py-2.5 hover:bg-sunken">
                               <Mail size={15} className="mt-0.5 shrink-0 text-subtle" />
                               <span className="min-w-0 flex-1">
                                 <span className="block text-[13px] text-ink">{m.titulo}</span>
@@ -187,7 +187,7 @@ export default async function Manual({ searchParams }: { searchParams: Promise<{
               <ul className="divide-y divide-line">
                 {emails.map((m) => (
                   <li key={m.id}>
-                    <Link href={`/emails?modelo=${m.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-sunken">
+                    <Link prefetch={false} href={`/emails?modelo=${m.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-sunken">
                       <span className="text-[13px] text-ink">{m.titulo}</span>
                       <span className="text-xs text-muted">{etapas.find((e) => e.id === m.etapa_id) ? nomeCurto(etapas.find((e) => e.id === m.etapa_id)!.nome) : "—"}</span>
                     </Link>

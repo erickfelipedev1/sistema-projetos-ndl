@@ -64,7 +64,7 @@ export default function Demandas({ meuId, demandas, nomes, processos }: {
                   <p className="text-[12.5px]">
                     <span className="font-semibold text-ink">{m.autor === meuId ? "Você" : nomes[m.autor] ?? "—"}</span>
                     <span className="text-subtle"> · {relativo(m.created_at)} · </span>
-                    <Link href={`/chat?c=${m.conversa_id}`} className="text-primary-2 hover:underline">abrir conversa</Link>
+                    <Link prefetch={false} href={`/chat?c=${m.conversa_id}`} className="text-primary-2 hover:underline">abrir conversa</Link>
                   </p>
                   <p className="text-[13.5px] whitespace-pre-wrap text-ink">{m.texto}</p>
                   <DemandaCard m={m} meuId={meuId} nomes={nomes} processo={m.processo_id ? processos[m.processo_id] : null} onStatus={mudar} />

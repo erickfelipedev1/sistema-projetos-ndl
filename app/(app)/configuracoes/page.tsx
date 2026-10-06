@@ -75,7 +75,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav className="card h-fit p-2" aria-label={GRUPOS[grupo].rotulo}>
           {secoes.map(([k, r]) => (
-            <Link key={k} href={href(grupo, k)} scroll={false} aria-current={sec === k ? "page" : undefined}
+            <Link prefetch={false} key={k} href={href(grupo, k)} scroll={false} aria-current={sec === k ? "page" : undefined}
               className={`flex h-8 items-center justify-between rounded-md px-2.5 text-[13px] ${sec === k ? "bg-primary-soft font-medium text-primary" : "text-ink hover:bg-sunken"}`}>
               {r}<ChevronRight size={14} className={sec === k ? "text-primary" : "text-subtle"} />
             </Link>

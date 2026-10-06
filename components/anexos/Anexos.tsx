@@ -114,7 +114,7 @@ function Grupo({ g, autores }: { g: GrupoAnexos; autores: Record<string, string>
       <header className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
         <div className="min-w-0">
           <p className="text-[13px] font-medium text-ink">
-            {g.href ? <Link href={g.href} className="hover:text-primary-2">{g.titulo}</Link> : g.titulo}
+            {g.href ? <Link prefetch={false} href={g.href} className="hover:text-primary-2">{g.titulo}</Link> : g.titulo}
             <span className="num ml-1.5 text-xs font-normal text-subtle">{g.anexos.length || ""}</span>
           </p>
           {g.sub && <p className="text-[11.5px] text-muted">{g.sub}</p>}

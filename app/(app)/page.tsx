@@ -184,7 +184,7 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
                   {maiorAtraso.map((e) => (
                     <tr key={e.id}>
                       <td>
-                        <Link href={`/processos/${e.processo_id}`} className="font-medium whitespace-nowrap text-ink hover:text-primary-2">{e.cliente}</Link>
+                        <Link prefetch={false} href={`/processos/${e.processo_id}`} className="font-medium whitespace-nowrap text-ink hover:text-primary-2">{e.cliente}</Link>
                         <div className="text-[11px] text-subtle">{e.codigo}</div>
                       </td>
                       <td className="max-w-[240px]">
@@ -217,7 +217,7 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
                 <tbody>
                   {proximas.map(({ e, prev }) => (
                     <tr key={e.id}>
-                      <td className="whitespace-nowrap"><Link href={`/processos/${e.processo_id}`} className="font-medium text-ink hover:text-primary-2">{e.cliente}</Link></td>
+                      <td className="whitespace-nowrap"><Link prefetch={false} href={`/processos/${e.processo_id}`} className="font-medium text-ink hover:text-primary-2">{e.cliente}</Link></td>
                       <td className="whitespace-nowrap text-ink">{nomeCurto(e.nome)}</td>
                       <td className="num whitespace-nowrap">{dataBR(prev)}</td>
                       <td><Responsavel ids={e.responsaveis} label={e.responsaveis_label} mapa={mapaPerfis} /></td>

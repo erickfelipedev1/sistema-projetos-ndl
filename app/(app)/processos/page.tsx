@@ -103,7 +103,7 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
                   {lista.map((p) => (
                     <tr key={p.id}>
                       <td className="text-xs text-muted">{p.codigo}</td>
-                      <td><Link href={`/processos/${p.id}`} className="font-medium text-ink hover:text-primary-2">{p.cliente}</Link></td>
+                      <td><Link prefetch={false} href={`/processos/${p.id}`} className="font-medium text-ink hover:text-primary-2">{p.cliente}</Link></td>
                       <td className="text-muted">{p.contato ?? "—"}</td>
                       <td><PlanoTag plano={p.plano} /></td>
                       <td className="text-muted">{p.gerenciamento === "ntl" ? "Gerenciamento NTL" : p.gerenciamento === "proprio" ? "Próprio NLG" : "—"}</td>
@@ -155,7 +155,7 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
                   {filtrados.map((e) => (
                     <tr key={e.id}>
                       <td className="whitespace-nowrap">
-                        <Link href={`/processos/${e.processo_id}`} className="font-medium text-ink hover:text-primary-2">{e.cliente}</Link>
+                        <Link prefetch={false} href={`/processos/${e.processo_id}`} className="font-medium text-ink hover:text-primary-2">{e.cliente}</Link>
                         <div className="text-[11px] text-subtle">{e.codigo}{e.contato ? ` · ${e.contato}` : ""}</div>
                       </td>
                       <td><PlanoTag plano={e.plano} /></td>
@@ -188,7 +188,7 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
                   <StageColumn key={c.id} etapa={c} total={lista.length} atrasados={0}>
                     <p className="px-1 text-[11px] text-muted">Chegaram nos últimos 30 dias</p>
                     {lista.map((p) => (
-                      <Link key={p.id} href={`/processos/${p.id}`} className="flex items-center justify-between rounded-md border border-line bg-surface px-2.5 py-2 hover:border-primary-2/50">
+                      <Link prefetch={false} key={p.id} href={`/processos/${p.id}`} className="flex items-center justify-between rounded-md border border-line bg-surface px-2.5 py-2 hover:border-primary-2/50">
                         <span className="truncate text-[12.5px] font-medium text-ink">{p.cliente}</span>
                         <span className="num shrink-0 text-[11px] text-ok-ink">{dataBR(p.concluido_em).slice(0, 5)}</span>
                       </Link>

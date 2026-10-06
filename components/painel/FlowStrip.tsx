@@ -31,7 +31,7 @@ export default function FlowStrip({ etapas }: { etapas: EtapaFluxo[] }) {
           return (
             <li key={e.id} className="relative px-1.5">
               {i < etapas.length - 1 && <span className="absolute top-[15px] left-1/2 h-px w-full bg-line-strong" aria-hidden />}
-              <Link href={`/processos?etapa=${e.id}`} className="group relative flex flex-col items-center text-center">
+              <Link prefetch={false} href={`/processos?etapa=${e.id}`} className="group relative flex flex-col items-center text-center">
                 <span className={`num relative z-10 flex h-[30px] w-[30px] items-center justify-center rounded-full border-2 text-[12px] font-semibold ${COR[tom].anel}`}>
                   {e.ordem}
                 </span>

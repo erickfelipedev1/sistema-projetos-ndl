@@ -67,7 +67,7 @@ function CardEtapa({ e }: { e: EtapaFluxo }) {
   const tom = tomEtapa(e);
   const Icone = iconeDa(e);
   return (
-    <Link href={`/processos?etapa=${e.id}`}
+    <Link prefetch={false} href={`/processos?etapa=${e.id}`}
       className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface px-3.5 pt-4 pb-3 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:border-primary-2/40">
       <span className={`absolute inset-x-0 top-0 h-[3px] ${TOM[tom].topo}`} aria-hidden />
       <div className="flex items-center gap-2.5">
@@ -104,7 +104,7 @@ function TabelaEtapas({ linhas }: { linhas: EtapaFluxo[] }) {
           const tom = tomEtapa(e);
           return (
             <tr key={e.id}>
-              <td className="py-1.5"><Link href={`/processos?etapa=${e.id}`} className="flex items-center gap-2 text-ink hover:text-primary-2"><Bola tom={tom} n={e.ordem} /><span className="truncate">{nomeCurto(e.nome).replace(" · ", " / ")}</span></Link></td>
+              <td className="py-1.5"><Link prefetch={false} href={`/processos?etapa=${e.id}`} className="flex items-center gap-2 text-ink hover:text-primary-2"><Bola tom={tom} n={e.ordem} /><span className="truncate">{nomeCurto(e.nome).replace(" · ", " / ")}</span></Link></td>
               <td className="num py-1.5 text-right">{e.emAndamento}</td>
               <td className="num py-1.5 text-right">{e.tipo === "tarefa" && e.mediaReal !== null ? fmt1(e.mediaReal) : "—"}</td>
               <td className="num py-1.5 text-right">{e.tipo === "tarefa" && e.meta ? fmt1(e.meta) : "—"}</td>
@@ -210,7 +210,7 @@ export default function FluxoProcessos({ etapas, resumo, periodo }: { etapas: Et
             <ul className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4 3xl:grid-cols-1">
               {atencao.slice(0, 4).map((e) => (
                 <li key={e.id}>
-                  <Link href={`/processos?etapa=${e.id}${e.atrasadas ? "&status=atrasado" : ""}`} className="flex gap-3 rounded-md bg-surface px-3 py-2.5 shadow-[var(--shadow-card)] hover:ring-1 hover:ring-bad/30">
+                  <Link prefetch={false} href={`/processos?etapa=${e.id}${e.atrasadas ? "&status=atrasado" : ""}`} className="flex gap-3 rounded-md bg-surface px-3 py-2.5 shadow-[var(--shadow-card)] hover:ring-1 hover:ring-bad/30">
                     <Bola tom={tomEtapa(e)} n={e.ordem} grande />
                     <span className="min-w-0">
                       <span className="block truncate text-[13px] font-semibold text-ink">{nomeCurto(e.nome)}</span>

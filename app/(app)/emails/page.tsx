@@ -65,7 +65,7 @@ export default async function Emails({ searchParams }: { searchParams: Promise<{
               const et = m.etapa_id ? etapaDe.get(m.etapa_id) : undefined;
               return (
                 <li key={m.id}>
-                  <Link href={href({ modelo: String(m.id) })} scroll={false} aria-current={on ? "true" : undefined}
+                  <Link prefetch={false} href={href({ modelo: String(m.id) })} scroll={false} aria-current={on ? "true" : undefined}
                     className={`relative flex gap-2.5 px-4 py-3 ${on ? "bg-primary-soft" : "hover:bg-sunken"}`}>
                     {on && <span className="absolute inset-y-0 left-0 w-0.5 bg-primary" />}
                     <Mail size={15} className={`mt-0.5 shrink-0 ${on ? "text-primary" : "text-subtle"}`} />

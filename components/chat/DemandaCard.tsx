@@ -20,7 +20,7 @@ export default function DemandaCard({ m, meuId, nomes, processo, onStatus }: {
         </span>
         <span className="text-muted">para <strong className="font-medium text-ink">{m.demanda_para === meuId ? "você" : nomes[m.demanda_para ?? ""] ?? "—"}</strong></span>
         {m.demanda_prazo && <span className={`inline-flex items-center gap-1 ${vencida ? "font-medium text-bad-ink" : "text-muted"}`}><CalendarClock size={12} /> até {dataBR(m.demanda_prazo)}</span>}
-        {m.processo_id && <Link href={`/processos/${m.processo_id}`} className="text-primary-2 hover:underline">{processo ?? "ver processo"}</Link>}
+        {m.processo_id && <Link prefetch={false} href={`/processos/${m.processo_id}`} className="text-primary-2 hover:underline">{processo ?? "ver processo"}</Link>}
       </p>
       {posso && (
         <div className="mt-1.5">

@@ -20,7 +20,10 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // getClaims() confere a assinatura do token aqui mesmo (chave pública ES256 do projeto, em cache),
+  // sem ir ao servidor de auth a cada requisição como o getUser(). Renova o token quando expira.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
   const isLogin = request.nextUrl.pathname.startsWith("/login");
 
   if (!user && !isLogin) {

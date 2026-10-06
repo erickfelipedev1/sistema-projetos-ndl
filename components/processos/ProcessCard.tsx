@@ -23,7 +23,7 @@ export default function ProcessCard({ e, mapa }: { e: EtapaAtual; mapa: Map<stri
   const nomes = e.responsaveis.map((id) => mapa.get(id)?.nome).filter(Boolean) as string[];
   const corPrazo = { atrasado: "text-bad-ink", atencao: "text-warn-ink", em_dia: "text-muted", sem_prazo: "text-subtle", aguardando: "text-primary", cobrar: "text-warn-ink" }[st as "atrasado"] ?? "text-muted";
   return (
-    <Link href={`/processos/${e.processo_id}`}
+    <Link prefetch={false} href={`/processos/${e.processo_id}`}
       className={`group block rounded-md border bg-surface p-2.5 transition hover:border-primary-2/50 hover:shadow-[var(--shadow-card)] ${st === "atrasado" ? "border-[#f0c9c9]" : "border-line"}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="line-clamp-1 text-[13px] leading-tight font-semibold text-ink group-hover:text-primary">{e.cliente}</p>

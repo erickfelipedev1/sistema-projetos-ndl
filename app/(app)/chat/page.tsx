@@ -47,7 +47,7 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ c
     const ativo = atual?.id === c.id;
     const titulo = c.tipo === "canal" ? c.nome ?? "Canal" : nome(c.outro_id);
     return (
-      <Link href={`/chat?c=${c.id}`} aria-current={ativo ? "page" : undefined}
+      <Link prefetch={false} href={`/chat?c=${c.id}`} aria-current={ativo ? "page" : undefined}
         className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 ${ativo ? "bg-primary-soft" : "hover:bg-sunken"}`}>
         {c.tipo === "canal" ? <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sunken text-muted"><Hash size={14} /></span> : <Avatar nome={titulo} tamanho={28} />}
         <span className="min-w-0 flex-1">
@@ -86,7 +86,7 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ c
             <p className="eyebrow px-2.5 pb-1">Conversas diretas</p>
             {diretas.map((c) => <Linha key={c.id} c={c} />)}
             {pessoas.filter((p) => p.id !== user.id && !comDireta.has(p.id)).map((p) => (
-              <Link key={p.id} href={`/chat?com=${p.id}`} className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] text-muted hover:bg-sunken hover:text-ink">
+              <Link prefetch={false} key={p.id} href={`/chat?com=${p.id}`} className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] text-muted hover:bg-sunken hover:text-ink">
                 <Avatar nome={p.nome} tamanho={24} /><span className="flex-1 truncate">{p.nome}</span><span className="text-[11px] text-subtle">{p.cargo}</span>
               </Link>
             ))}
@@ -99,7 +99,7 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ c
         <div className="flex gap-1.5 overflow-x-auto border-b border-line bg-surface px-3 py-2 md:hidden">
           <Link href="/chat?v=demandas" className={`chip shrink-0 border ${verDemandas ? "border-primary bg-primary-soft text-primary" : "border-line"}`}>Demandas</Link>
           {[...canais, ...diretas].map((c) => (
-            <Link key={c.id} href={`/chat?c=${c.id}`} className={`chip shrink-0 border ${atual?.id === c.id ? "border-primary bg-primary-soft text-primary" : "border-line"}`}>
+            <Link prefetch={false} key={c.id} href={`/chat?c=${c.id}`} className={`chip shrink-0 border ${atual?.id === c.id ? "border-primary bg-primary-soft text-primary" : "border-line"}`}>
               {c.tipo === "canal" ? `# ${c.nome}` : nome(c.outro_id)}{c.nao_lidas ? ` (${c.nao_lidas})` : ""}
             </Link>
           ))}

@@ -81,7 +81,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
                         : a?.atrasada ? { tipo: "atrasado" as const, texto: "Em atraso" } : { tipo: "em_dia" as const, texto: "Em andamento" };
                       return (
                         <tr key={p.id} className="hover:bg-sunken/60">
-                          <td><Link href={`/processos/${p.id}`} className="font-medium text-ink hover:text-primary-2">{p.codigo}</Link>{p.descricao && <span className="block max-w-[260px] truncate text-xs text-subtle">{p.descricao}</span>}</td>
+                          <td><Link prefetch={false} href={`/processos/${p.id}`} className="font-medium text-ink hover:text-primary-2">{p.codigo}</Link>{p.descricao && <span className="block max-w-[260px] truncate text-xs text-subtle">{p.descricao}</span>}</td>
                           <td><PlanoTag plano={p.plano} /></td>
                           <td className="text-muted">{a ? `${a.ordem}. ${nomeCurto(a.nome)}` : "—"}</td>
                           <td><StatusBadge tipo={st.tipo} texto={st.texto} /></td>

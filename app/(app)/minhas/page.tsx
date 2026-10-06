@@ -90,7 +90,7 @@ export default async function Minhas({ searchParams }: { searchParams: Promise<{
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium text-ink" title={d.texto}>{titulo}</p>
                     <p className="text-xs text-muted">
-                      {d.processos ? <Link href={`/processos/${d.processo_id}`} className="text-primary-2 hover:underline">{d.processos.codigo} · {d.processos.cliente}</Link> : "Sem processo"}
+                      {d.processos ? <Link prefetch={false} href={`/processos/${d.processo_id}`} className="text-primary-2 hover:underline">{d.processos.codigo} · {d.processos.cliente}</Link> : "Sem processo"}
                       {" · "}pedido por {mapaPerfis.get(d.autor)?.nome ?? "—"}
                     </p>
                   </div>
@@ -115,10 +115,10 @@ export default async function Minhas({ searchParams }: { searchParams: Promise<{
             {cobrar.map((e) => (
               <li key={e.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
                 <div className="min-w-0 flex-1">
-                  <Link href={`/processos/${e.processo_id}`} className="text-[13px] font-medium text-ink hover:text-primary-2">{e.cliente} <span className="text-xs font-normal text-subtle">{e.codigo}</span></Link>
+                  <Link prefetch={false} href={`/processos/${e.processo_id}`} className="text-[13px] font-medium text-ink hover:text-primary-2">{e.cliente} <span className="text-xs font-normal text-subtle">{e.codigo}</span></Link>
                   <p className="text-xs text-muted">{e.proxima_acao ? limparPasso(e.proxima_acao).split(" — ")[0] : nomeCurto(e.nome)} · última cobrança {e.ultima_cobranca ? dataBR(e.ultima_cobranca) : "nenhuma"}</p>
                 </div>
-                <Link href={`/processos/${e.processo_id}?tab=emails`} className="btn-quiet h-7 text-xs">E-mail de cobrança</Link>
+                <Link prefetch={false} href={`/processos/${e.processo_id}?tab=emails`} className="btn-quiet h-7 text-xs">E-mail de cobrança</Link>
                 <CobrancaForm peId={e.id} compacto />
               </li>
             ))}
@@ -161,7 +161,7 @@ export default async function Minhas({ searchParams }: { searchParams: Promise<{
                         <div className="num mt-0.5 text-[11px] text-subtle">{e.aguardando_cliente ? `cobrar em ${dataBR(e.proxima_cobranca)}` : dataBR(e.prazo_em)}</div>
                       </td>
                       <td className="w-32">{e.checklist_total ? <ProgressBar valor={e.checklist_feitos} total={e.checklist_total} /> : <span className="text-xs text-subtle">—</span>}</td>
-                      <td className="text-right"><Link href={`/processos/${e.processo_id}`} className="btn-primary h-7 text-xs">Abrir processo</Link></td>
+                      <td className="text-right"><Link prefetch={false} href={`/processos/${e.processo_id}`} className="btn-primary h-7 text-xs">Abrir processo</Link></td>
                     </tr>
                   );
                 })}

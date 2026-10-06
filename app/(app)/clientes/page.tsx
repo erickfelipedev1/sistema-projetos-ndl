@@ -58,7 +58,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
                   return (
                     <tr key={c.id} className="hover:bg-sunken/60">
                       <td>
-                        <Link href={`/clientes/${c.id}`} className="font-medium text-ink hover:text-primary-2">{c.nome}</Link>
+                        <Link prefetch={false} href={`/clientes/${c.id}`} className="font-medium text-ink hover:text-primary-2">{c.nome}</Link>
                         {c.cnpj && <span className="block text-xs text-subtle">{c.cnpj}</span>}
                       </td>
                       <td className="text-muted">{c.contato ?? "—"}{c.email && <span className="block text-xs text-subtle">{c.email}</span>}</td>
@@ -66,7 +66,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
                       <td className="num text-right text-muted">{s?.total ?? 0}</td>
                       <td className="num text-muted">{s?.ultimo ? dataBR(s.ultimo) : "—"}</td>
                       <td>{comAcesso.has(c.id) ? <span className="chip bg-ok-soft text-ok-ink">Com acesso</span> : <span className="text-xs text-subtle">—</span>}</td>
-                      <td className="text-right"><Link href={`/clientes/${c.id}`} className="inline-flex text-subtle hover:text-ink" aria-label={`Abrir ${c.nome}`}><ChevronRight size={16} /></Link></td>
+                      <td className="text-right"><Link prefetch={false} href={`/clientes/${c.id}`} className="inline-flex text-subtle hover:text-ink" aria-label={`Abrir ${c.nome}`}><ChevronRight size={16} /></Link></td>
                     </tr>
                   );
                 })}

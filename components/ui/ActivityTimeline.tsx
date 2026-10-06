@@ -35,7 +35,7 @@ export default function ActivityTimeline({ itens, mostrarProcesso = true }: { it
               {resto && <p className="mt-0.5 text-muted">{resto}</p>}
               <p className="mt-0.5 text-[11px] text-subtle">
                 {mostrarProcesso && a.processo && a.processo_id && (
-                  <><Link href={`/processos/${a.processo_id}`} className="text-muted hover:text-primary-2">{a.processo}</Link> · </>
+                  <><Link prefetch={false} href={`/processos/${a.processo_id}`} className="text-muted hover:text-primary-2">{a.processo}</Link> · </>
                 )}
                 {relativo(a.created_at)}
               </p>
