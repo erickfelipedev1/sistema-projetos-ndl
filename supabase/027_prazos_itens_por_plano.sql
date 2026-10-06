@@ -19,13 +19,13 @@ alter table public.checklist_modelo add column if not exists dias_premium int;
 -- ---------------------------------------------------------------------
 -- Dias por item (etapa Projeto), por "ordem" do modelo
 --   ordem  tarefa da imagem                                    flex full prem
---     1    Recebimento do projeto + Montagem das referências     1    1    1
---     2    Busca por fornecedores (itens 2, 3 e 4 vencem juntos) 9   10   15
---     5    Escolha dos fornecedores (envio dos catálogos)        1    1    1
---     6    Montagem da apresentação                              1    1    2
---     7    Envio da apresentação + Reunião de sourcing (7,8,9)   2    2    2
---    10    Solicitação de PI e PL                                1    1    1
---    11    Solicitação de frete internacional (11, 115)          1    2    1
+--    10    Recebimento do projeto + Montagem das referências     1    1    1
+--    20    Busca por fornecedores (20, 30 e 40 vencem juntos) 9   10   15
+--    50    Escolha dos fornecedores (envio dos catálogos)        1    1    1
+--    60    Montagem da apresentação                              1    1    2
+--    70    Envio da apresentação + Reunião de sourcing (70, 80, 90)   2    2    2
+--   100    Solicitação de PI e PL                                1    1    1
+--   110    Solicitação de frete internacional (110, 115)          1    2    1
 --   120    Solicitação de frete rodoviário (120, 125)            1    1    1
 --   130    Solicitação de estimativa de custos                   1    1    1
 --   140    Montagem da estimativa (sobra até o total da imagem)  3    3    6
@@ -33,9 +33,9 @@ alter table public.checklist_modelo add column if not exists dias_premium int;
 -- Total acumulado: Flex 25 · Full 27 · Premium 35 (= "Total de dias" das imagens)
 -- ---------------------------------------------------------------------
 with d(ordem, f, u, p) as (values
-  (1, 1, 1, 1), (2, 9, 10, 15), (3, 0, 0, 0), (4, 0, 0, 0),
-  (5, 1, 1, 1), (6, 1, 1, 2), (7, 2, 2, 2), (8, 0, 0, 0), (9, 0, 0, 0),
-  (10, 1, 1, 1), (11, 1, 2, 1), (115, 0, 0, 0),
+  (10, 1, 1, 1), (20, 9, 10, 15), (30, 0, 0, 0), (40, 0, 0, 0),
+  (50, 1, 1, 1), (60, 1, 1, 2), (70, 2, 2, 2), (80, 0, 0, 0), (90, 0, 0, 0),
+  (100, 1, 1, 1), (110, 1, 2, 1), (115, 0, 0, 0),
   (120, 1, 1, 1), (125, 0, 0, 0), (130, 1, 1, 1),
   (140, 3, 3, 6), (145, 1, 1, 1), (150, 1, 1, 1), (155, 1, 1, 1), (160, 1, 1, 1))
 update public.checklist_modelo m
