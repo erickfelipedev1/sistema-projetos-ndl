@@ -480,6 +480,26 @@ export async function pausarProcesso(fd: FormData) {
   revalidatePath("/", "layout");
 }
 
+// Recotação: depois de apresentar a estimativa, o CS volta o processo para Projeto (nova data e prazo)
+export async function recotarProcesso(fd: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("recotar_processo", {
+    p_processo_id: txt(fd, "processo_id"), p_motivo: txt(fd, "motivo") || null,
+  });
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
+// Segmentos do sourcing: nome e fornecedores (um por linha)
+export async function salvarSegmento(fd: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("processo_segmentos")
+    .update({ nome: txt(fd, "nome") || "Segmento", fornecedores: txt(fd, "fornecedores") || null })
+    .eq("id", txt(fd, "id"));
+  if (error) falhou(error.message);
+  revalidatePath(`/processos/${txt(fd, "processo_id")}`);
+}
+
 // ---------------------------------------------------------------------
 // Fornecedores
 // ---------------------------------------------------------------------

@@ -1,16 +1,16 @@
 import Link from "next/link";
-import { CheckCircle2, MessageSquare, RotateCcw, CalendarClock, UserRound, PlusCircle, Flag, Info } from "lucide-react";
+import { CheckCircle2, MessageSquare, RotateCcw, RefreshCcw, CalendarClock, UserRound, PlusCircle, Flag, Info } from "lucide-react";
 import { relativo } from "@/lib/status";
 
 export type Atividade = { id: number; tipo: string; texto: string; created_at: string; autor: string | null; processo_id?: string; processo?: string | null };
 
 const ICONE: Record<string, typeof Info> = {
   avanco: CheckCircle2, comentario: MessageSquare, retorno: RotateCcw, prazo: CalendarClock,
-  responsavel: UserRound, criado: PlusCircle, status: Flag, situacao: Info,
+  responsavel: UserRound, criado: PlusCircle, status: Flag, situacao: Info, recotacao: RefreshCcw,
 };
 const COR: Record<string, string> = {
   avanco: "text-ok", comentario: "text-primary-2", retorno: "text-warn", prazo: "text-primary-2",
-  responsavel: "text-primary-2", criado: "text-muted", status: "text-bad", situacao: "text-warn",
+  responsavel: "text-primary-2", criado: "text-muted", status: "text-bad", situacao: "text-warn", recotacao: "text-primary",
 };
 
 export default function ActivityTimeline({ itens, mostrarProcesso = true }: { itens: Atividade[]; mostrarProcesso?: boolean }) {

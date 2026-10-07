@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, CalendarClock, ChevronRight, CircleCheck, RotateCcw, XCircle, Pencil, RefreshCcw } from "lucide-react";
 import { base, previsaoChegada, duracaoUteis } from "@/lib/dados";
-import type { Anexo, ChecklistItem, EmailModelo, Evento, Processo, ProcessoEtapa } from "@/lib/types";
+import type { Anexo, ChecklistItem, EmailModelo, Evento, Processo, ProcessoEtapa, Segmento } from "@/lib/types";
 import { dataBR, dataHoraBR, nomeExibicao, nomesResponsaveis, preencherModelo, GERENCIAMENTO_LABEL } from "@/lib/format";
 import { diasUteisEntre, paraDataBR } from "@/lib/diasUteis";
 import { du, limparPasso, nomeCurto, prazoTexto, statusPrazo } from "@/lib/status";
@@ -22,9 +22,9 @@ import CobrancaForm from "@/components/processos/CobrancaForm";
 import { Hourglass } from "lucide-react";
 import Anexos, { AnexarBotao, type GrupoAnexos } from "@/components/anexos/Anexos";
 import { podeEditarEtapa, podeMarcarItem, responsaveisDoItem } from "@/lib/permissoes";
-import { Lock, Pause, Play } from "lucide-react";
+import { Lock, Pause, Play, RefreshCcw as Recotar } from "lucide-react";
 import {
-  alterarPrazo, alterarResponsaveis, avancarProcesso, cancelarProcesso, comentar, definirSituacao, editarProcesso, pausarProcesso, retornarProcesso,
+  alterarPrazo, alterarResponsaveis, avancarProcesso, cancelarProcesso, comentar, definirSituacao, editarProcesso, pausarProcesso, recotarProcesso, retornarProcesso, salvarSegmento,
 } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   const { tab = "checklist" } = await searchParams;
   const { supabase, user, perfis, mapaPerfis, feriados, hoje } = await base();
 
-  const [{ data: proc }, { data: etapasData }, { data: eventosData }, { data: checkData }, { data: emailsData }, { data: anexosData }, { data: clientesData }, { data: modelosResp }] = await Promise.all([
+  const [{ data: proc }, { data: etapasData }, { data: eventosData }, { data: checkData }, { data: emailsData }, { data: anexosData }, { data: clientesData }, { data: modelosResp }, { data: segmentosData }] = await Promise.all([
     supabase.from("processos").select("*").eq("id", id).maybeSingle(),
     supabase.from("processo_etapas").select("*").eq("processo_id", id).order("ordem"),
     supabase.from("processo_eventos").select("*").eq("processo_id", id).order("created_at", { ascending: false }),
@@ -43,7 +43,9 @@ export default async function DetalheProcesso({ params, searchParams }: { params
     supabase.from("anexos").select("*").eq("processo_id", id).order("created_at", { ascending: false }),
     supabase.from("clientes").select("id,nome").order("nome"),
     supabase.from("checklist_modelo").select("id,responsaveis,responsaveis_label"),
+    supabase.from("processo_segmentos").select("*").eq("processo_id", id).order("ordem"),
   ]);
+  const segmentos = (segmentosData ?? []) as Segmento[];
   const respItens: Record<number, string> = Object.fromEntries(((modelosResp ?? []) as { id: number; responsaveis: string[]; responsaveis_label: string | null }[])
     .map((m) => [m.id, (m.responsaveis ?? []).map((r) => mapaPerfis.get(r)?.nome).filter(Boolean).join(" / ") || m.responsaveis_label || ""])
     .filter(([, v]) => v));
@@ -131,6 +133,11 @@ export default async function DetalheProcesso({ params, searchParams }: { params
               {p.certificacao && <span className="chip border border-line bg-surface text-muted">Com certificação</span>}
               {p.gerenciamento && <span className="chip border border-line bg-surface text-muted">{GERENCIAMENTO_LABEL[p.gerenciamento]}</span>}
               {!p.gerenciamento && p.status === "ativo" && <span className="chip bg-warn-soft text-warn-ink">Tipo de ordem não definido</span>}
+              {(p.recotacoes ?? 0) > 0 && (
+                <span className="chip bg-primary-soft text-primary" title="Data em que o processo voltou para Projeto">
+                  <Recotar size={11} /> Recotação {p.recotacoes} · {dataBR(p.ultima_recotacao_em)}
+                </span>
+              )}
               {p.contato && <span className="text-xs text-muted">· Contato: {p.contato}</span>}
             </div>
           </div>
@@ -141,6 +148,15 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                   <input type="hidden" name="processo_id" value={p.id} />
                   <div><label className="label">Motivo</label><input name="motivo" className="input" placeholder="Ex.: avancei por engano" /></div>
                   <div className="flex justify-end"><SubmitButton>Voltar etapa</SubmitButton></div>
+                </form>
+              </Modal>
+            )}
+            {p.status === "ativo" && atual?.nome === "Apresentação da estimativa" && podeAtual && (
+              <Modal rotulo={<><Recotar size={14} /> Recotar</>} botaoClasse="btn-primary" titulo="Recotar este processo" descricao="O cliente vai cotar de novo: o processo volta para Projeto, com o checklist desmarcado e novo prazo contado a partir de hoje. A data da recotação fica registrada.">
+                <form action={recotarProcesso} className="space-y-3">
+                  <input type="hidden" name="processo_id" value={p.id} />
+                  <div><label className="label">Motivo / o que o cliente pediu</label><input name="motivo" className="input" placeholder="Ex.: nova quantidade, outro fornecedor" /></div>
+                  <div className="flex justify-end"><SubmitButton>Recotar e voltar para Projeto</SubmitButton></div>
                 </form>
               </Modal>
             )}
@@ -326,6 +342,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
               <Tabs ativo={tab} className="border-b-0" itens={[
                 { chave: "checklist", rotulo: "Checklist", href: tabHref("checklist"), contagem: checkAtual.length ? checkAtual.length - pendentes.length : undefined },
                 { chave: "emails", rotulo: "E-mails", href: tabHref("emails"), contagem: emailsAtual.length || undefined },
+                { chave: "segmentos", rotulo: "Segmentos", href: tabHref("segmentos"), contagem: segmentos.length || undefined },
                 { chave: "anexos", rotulo: "Anexos", href: tabHref("anexos"), contagem: anexos.length || undefined },
                 { chave: "comentarios", rotulo: "Comentários", href: tabHref("comentarios"), contagem: comentarios.length || undefined },
                 { chave: "historico", rotulo: "Histórico", href: tabHref("historico") },
@@ -371,6 +388,35 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                 <div className="space-y-4">
                   {emailsAtual.length > 0 && (<div><p className="mb-2 text-xs font-medium text-muted">Desta etapa</p><EmailModelos emails={emailsAtual} /></div>)}
                   <div><p className="mb-2 text-xs font-medium text-muted">Todos os modelos (preenchidos com os dados deste processo)</p><EmailModelos emails={emails.filter((m) => !emailsAtual.includes(m))} /></div>
+                </div>
+              )}
+
+              {tab === "segmentos" && (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted">
+                    Segmentos do sourcing{p.plano ? ` (${p.plano}: ${p.plano === "Premium" ? "6 segmentos e 12 fornecedores, 2 por segmento" : p.plano === "Full" ? "1 segmento e 3 fornecedores" : "1 segmento e 1 fornecedor"})` : ""}.
+                    Dê um nome a cada segmento e liste os fornecedores escolhidos, um por linha.
+                  </p>
+                  {!p.plano ? (
+                    <EmptyState compacto titulo="Defina o plano do processo" texto="Os segmentos aparecem assim que o plano (Flex, Full ou Premium) for escolhido na aba Dados." />
+                  ) : segmentos.length ? (
+                    <div className="grid gap-3 lg:grid-cols-2">
+                      {segmentos.map((s) => {
+                        const feitos = (s.fornecedores ?? "").split("\n").map((l) => l.trim()).filter(Boolean).length;
+                        return (
+                          <form key={s.id} action={salvarSegmento} className="card space-y-2 p-3">
+                            <input type="hidden" name="id" value={s.id} /><input type="hidden" name="processo_id" value={p.id} />
+                            <div className="flex items-center gap-2">
+                              <input name="nome" defaultValue={s.nome} disabled={!podeProc} className="input h-8 font-medium" aria-label="Nome do segmento" />
+                              <span className={`chip shrink-0 ${feitos >= s.meta_fornecedores ? "bg-ok-soft text-ok-ink" : "bg-sunken text-muted"}`}>{feitos}/{s.meta_fornecedores} fornecedor{s.meta_fornecedores > 1 ? "es" : ""}</span>
+                            </div>
+                            <textarea name="fornecedores" defaultValue={s.fornecedores ?? ""} disabled={!podeProc} rows={Math.max(2, s.meta_fornecedores)} className="textarea" placeholder="Um fornecedor por linha" />
+                            {podeProc && <div className="flex justify-end"><SubmitButton className="btn-ghost h-7 text-xs">Salvar segmento</SubmitButton></div>}
+                          </form>
+                        );
+                      })}
+                    </div>
+                  ) : <EmptyState compacto titulo="Nenhum segmento ainda" texto="Eles são criados quando o processo tem plano." />}
                 </div>
               )}
 

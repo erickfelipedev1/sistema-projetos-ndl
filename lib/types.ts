@@ -91,6 +91,17 @@ export type Processo = {
   certificacao: boolean;
   contato: string | null;
   gerenciamento: "ntl" | "proprio" | null;
+  recotacoes?: number;
+  ultima_recotacao_em?: string | null;
+};
+
+export type Segmento = {
+  id: string;
+  processo_id: string;
+  ordem: number;
+  nome: string;
+  meta_fornecedores: number;
+  fornecedores: string | null;
 };
 
 export type Evento = {
