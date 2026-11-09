@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Check } from "lucide-react";
 import type { ProcessoEtapa } from "@/lib/types";
 import { nomeCurto } from "@/lib/status";
@@ -17,7 +18,7 @@ const ROTULO: Record<EstadoEtapa, string> = {
 };
 
 /** 12 etapas em linha: estado, responsável, início, prazo e conclusão */
-export default function ProcessTimeline({ etapas, hoje, responsavel }: { etapas: ProcessoEtapa[]; hoje: string; responsavel: (e: ProcessoEtapa) => string }) {
+export default function ProcessTimeline({ etapas, hoje, responsavel, processoId, selecionada }: { etapas: ProcessoEtapa[]; hoje: string; responsavel: (e: ProcessoEtapa) => string; processoId?: string; selecionada?: string }) {
   return (
     <div className="scroll-x">
       <ol className="flex min-w-[1100px]">
@@ -35,6 +36,9 @@ export default function ProcessTimeline({ etapas, hoje, responsavel }: { etapas:
           return (
             <li key={e.id} className={`relative flex-1 px-1 text-center ${atual ? "" : ""}`} aria-current={atual ? "step" : undefined}>
               {i < etapas.length - 1 && <span className={`absolute top-[13px] left-1/2 h-0.5 w-full ${linha}`} aria-hidden />}
+              <Link prefetch={false} scroll={false} href={`/processos/${processoId}?tab=checklist&etapa=${e.id}`}
+                title="Ver o checklist e os e-mails desta etapa"
+                className={`relative z-10 block rounded-md pt-1 pb-1.5 transition-colors hover:bg-sunken ${e.id === selecionada ? "bg-primary-soft/60 ring-1 ring-primary-2/40" : ""}`}>
               <span className={`num relative z-10 mx-auto flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 text-[11px] font-semibold ${circulo}`}
                 title={ROTULO[st]}>
                 {e.status === "concluida" ? <Check size={13} strokeWidth={3} /> : e.ordem}
@@ -49,6 +53,7 @@ export default function ProcessTimeline({ etapas, hoje, responsavel }: { etapas:
                   : e.status === "em_andamento" ? `até ${dataBR(e.prazo_em).slice(0, 5)}`
                   : e.prazo_dias_uteis != null && e.tipo === "tarefa" ? `${e.prazo_dias_uteis} d.u.` : e.tipo === "marco" ? "marco" : ""}
               </p>
+              </Link>
             </li>
           );
         })}

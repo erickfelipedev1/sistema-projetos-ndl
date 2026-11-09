@@ -31,9 +31,9 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function DetalheProcesso({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
+export default async function DetalheProcesso({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; etapa?: string }> }) {
   const { id } = await params;
-  const { tab = "checklist" } = await searchParams;
+  const { tab = "checklist", etapa: etapaParam } = await searchParams;
   const { supabase, user, perfis, mapaPerfis, feriados, hoje } = await base();
 
   const [{ data: proc }, { data: etapasData }, { data: eventosData }, { data: checkData }, { data: emailsData }, { data: anexosData }, { data: clientesData }, { data: modelosResp }, { data: segmentosData }] = await Promise.all([
@@ -90,6 +90,21 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   const pendentes = checkAtual.filter((c) => !c.feito);
   const proximaAcao = atual?.situacao ?? (pendentes[0] ? limparPasso(pendentes[0].titulo) : null);
 
+  // etapa escolhida na linha do tempo (para ver o checklist e os e-mails de qualquer etapa)
+  const etapaVista = etapas.find((e) => e.id === etapaParam) ?? atual;
+  const verOutra = !!etapaVista && etapaVista.id !== atual?.id;
+  const checkVista = etapaVista ? checklist.filter((c) => c.processo_etapa_id === etapaVista.id) : [];
+  const bloqueadosVista: Record<string, string> = {};
+  if (verOutra && etapaVista) {
+    for (const c of checkVista) {
+      if (etapaVista.status === "pendente") { bloqueadosVista[c.id] = "Esta etapa ainda não começou"; continue; }
+      const resp = c.responsavel_id ? [c.responsavel_id] : c.modelo_id ? responsaveisDoItem(modelosMap.get(c.modelo_id), perfis) : [];
+      if (!podeMarcarItem(eu, resp, etapaVista)) {
+        bloqueadosVista[c.id] = resp.length ? `Só ${resp.map((x) => mapaPerfis.get(x)?.nome).filter(Boolean).join(" / ")} pode marcar` : `Só ${etapaVista.area} pode marcar`;
+      }
+    }
+  }
+
   const meuNome = perfis.find((pf) => pf.id === user.id)?.nome ?? null;
   const vars = { empresa: p.cliente, contato: p.contato, plano: p.plano, meu_nome: meuNome, codigo: p.codigo, gerenciamento: p.gerenciamento };
   const nomeEtapaPorId = new Map(etapas.filter((e) => e.etapa_id).map((e) => [e.etapa_id as number, e.nome]));
@@ -97,6 +112,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
     .filter((m) => !m.condicao || m.condicao === p.gerenciamento)
     .map((m) => ({ id: m.id, etapa_id: m.etapa_id, titulo: m.titulo, para: m.para, assunto: preencherModelo(m.assunto ?? "", vars), corpo: preencherModelo(m.corpo, vars), etapa: m.etapa_id ? nomeEtapaPorId.get(m.etapa_id) ?? null : null }));
   const emailsAtual = atual ? emails.filter((m) => m.etapa_id === atual.etapa_id) : [];
+  const emailsVista = etapaVista ? emails.filter((m) => m.etapa_id === etapaVista.etapa_id) : [];
   const comentarios = eventos.filter((e) => e.tipo === "comentario");
   const anexos = (anexosData ?? []) as Anexo[];
   // anexos enviados junto com comentários: links assinados (bucket privado) só quando a aba está aberta
@@ -128,6 +144,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   ];
 
   const tabHref = (t: string) => `/processos/${id}?tab=${t}`;
+  const tabHrefEtapa = (t: string) => `/processos/${id}?tab=${t}${etapaParam ? `&etapa=${etapaParam}` : ""}`;
   const statusProcesso = p.status === "concluido" ? { tipo: "concluido" as const, texto: "Concluído" }
     : p.status === "pausado" ? { tipo: "sem_prazo" as const, texto: "Pausado" }
     : p.status === "cancelado" ? { tipo: "cancelado" as const, texto: "Cancelado" }
@@ -251,10 +268,11 @@ export default async function DetalheProcesso({ params, searchParams }: { params
 
       {/* timeline */}
       <section className="card px-4 pt-4 pb-3">
-        <ProcessTimeline etapas={etapas} hoje={hoje} responsavel={(e) => {
+        <ProcessTimeline etapas={etapas} hoje={hoje} processoId={p.id} selecionada={etapaVista?.id} responsavel={(e) => {
           const n = e.responsaveis.map((r) => mapaPerfis.get(r)?.nome).filter(Boolean);
           return n.length ? n.join(" / ") : e.responsaveis_label ?? "—";
         }} />
+        <p className="mt-1 text-center text-[11px] text-muted">Clique numa etapa para ver o checklist e os e-mails dela.</p>
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -358,8 +376,8 @@ export default async function DetalheProcesso({ params, searchParams }: { params
           <section className="card">
             <div className="px-4 pt-1">
               <Tabs ativo={tab} className="border-b-0" itens={[
-                { chave: "checklist", rotulo: "Checklist", href: tabHref("checklist"), contagem: checkAtual.length ? checkAtual.length - pendentes.length : undefined },
-                { chave: "emails", rotulo: "E-mails", href: tabHref("emails"), contagem: emailsAtual.length || undefined },
+                { chave: "checklist", rotulo: "Checklist", href: tabHrefEtapa("checklist"), contagem: checkAtual.length ? checkAtual.length - pendentes.length : undefined },
+                { chave: "emails", rotulo: "E-mails", href: tabHrefEtapa("emails"), contagem: emailsAtual.length || undefined },
                 { chave: "segmentos", rotulo: "Segmentos", href: tabHref("segmentos"), contagem: segmentos.length || undefined },
                 { chave: "anexos", rotulo: "Anexos", href: tabHref("anexos"), contagem: anexos.length || undefined },
                 { chave: "comentarios", rotulo: "Comentários", href: tabHref("comentarios"), contagem: comentarios.length || undefined },
@@ -370,10 +388,24 @@ export default async function DetalheProcesso({ params, searchParams }: { params
             <div className="border-t border-line p-4">
               {tab === "checklist" && (
                 <div className="space-y-4">
-                  {atual ? (
+                  {etapaVista ? (
                     <div>
-                      <p className="mb-2 text-xs font-medium text-muted">{nomeCurto(atual.nome)}</p>
-                      <Checklist podePrazo={!!eu?.admin} itens={checkAtual} nomes={nomes} responsaveis={respItens} bloqueados={bloqueados} pessoas={pessoasChecklist} processoEtapaId={atual.id} />
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <p className="text-xs font-medium text-muted">{etapaVista.ordem}. {nomeCurto(etapaVista.nome)}</p>
+                        {verOutra && (
+                          <>
+                            <span className="chip bg-sunken text-muted">{etapaVista.status === "concluida" ? "Concluída" : etapaVista.status === "em_andamento" ? "Em andamento" : "Ainda não começou"}</span>
+                            <Link prefetch={false} scroll={false} href={tabHref("checklist")} className="text-xs text-primary-2 hover:underline">Voltar para a etapa atual</Link>
+                          </>
+                        )}
+                      </div>
+                      {verOutra && etapaVista.status === "pendente" && (
+                        <p className="mb-2 rounded-md bg-sunken px-3 py-2 text-xs text-muted">Esta etapa ainda não começou: dá para ver os itens, mas só dá para marcar quando ela estiver em andamento.</p>
+                      )}
+                      {checkVista.length ? (
+                        <Checklist podePrazo={!!eu?.admin} itens={checkVista} nomes={nomes} responsaveis={respItens} bloqueados={verOutra ? bloqueadosVista : bloqueados} pessoas={pessoasChecklist} processoEtapaId={etapaVista.id}
+                          editavel={!(verOutra && etapaVista.status === "pendente")} />
+                      ) : <EmptyState compacto titulo="Esta etapa não tem checklist" texto="Itens podem ser configurados em Configurações › Checklists." />}
                     </div>
                   ) : <EmptyState compacto titulo="Esta etapa não tem checklist" texto="Itens podem ser configurados em Configurações › Checklists." />}
                   {!p.gerenciamento && p.status === "ativo" && (
@@ -404,8 +436,8 @@ export default async function DetalheProcesso({ params, searchParams }: { params
 
               {tab === "emails" && (
                 <div className="space-y-4">
-                  {emailsAtual.length > 0 && (<div><p className="mb-2 text-xs font-medium text-muted">Desta etapa</p><EmailModelos emails={emailsAtual} /></div>)}
-                  <div><p className="mb-2 text-xs font-medium text-muted">Todos os modelos (preenchidos com os dados deste processo)</p><EmailModelos emails={emails.filter((m) => !emailsAtual.includes(m))} /></div>
+                  {emailsVista.length > 0 && (<div><p className="mb-2 text-xs font-medium text-muted">{verOutra && etapaVista ? `Da etapa ${nomeCurto(etapaVista.nome)}` : "Desta etapa"}</p><EmailModelos emails={emailsVista} /></div>)}
+                  <div><p className="mb-2 text-xs font-medium text-muted">Todos os modelos (preenchidos com os dados deste processo)</p><EmailModelos emails={emails.filter((m) => !emailsVista.includes(m))} /></div>
                 </div>
               )}
 
