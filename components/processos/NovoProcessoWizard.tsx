@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Building2, Check, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Check, Paperclip, Plus, X } from "lucide-react";
 import { addDiasUteis, diasUteisEntre } from "@/lib/diasUteis";
 import { dataBR } from "@/lib/format";
 import { nomeCurto } from "@/lib/status";
-import { criarProcesso } from "@/app/actions";
-import SubmitButton from "@/components/ui/SubmitButton";
+import { criarProcessoComId } from "@/app/actions";
+import { enviarArquivosProcesso, LIMITE_MB, tamanhoTexto } from "@/components/anexos/Anexos";
 import Avatar from "@/components/ui/Avatar";
 
 type EtapaW = { id: number; ordem: number; nome: string; area: string; tipo: string; prazo: number | null; flex: number | null; full: number | null; premium: number | null; cert: number | null; responsaveis: string[]; label: string | null };
@@ -51,6 +52,35 @@ export default function NovoProcessoWizard({ etapas, itens, feriados, hoje, clie
   const [cert, setCert] = useState("nao");
   const [ger, setGer] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  const router = useRouter();
+  const [arquivos, setArquivos] = useState<File[]>([]);
+  const [criando, setCriando] = useState(false);
+  const [criadoId, setCriadoId] = useState<string | null>(null);
+  const inputArquivos = useRef<HTMLInputElement>(null);
+  const adicionarArquivos = (lista: FileList | null) => {
+    if (!lista) return;
+    setArquivos((a) => [...a, ...Array.from(lista)]);
+    if (inputArquivos.current) inputArquivos.current.value = "";
+  };
+
+  async function criar(ev: React.FormEvent<HTMLFormElement>) {
+    ev.preventDefault();
+    if (criando) return;
+    if (passo < 3) return avancar();   // Enter nos passos anteriores só avança
+    const grandes = arquivos.filter((f) => f.size > LIMITE_MB * 1024 * 1024);
+    if (grandes.length) return setErro(`Arquivo acima de ${LIMITE_MB} MB: ${grandes.map((g) => g.name).join(", ")}`);
+    setErro(null);
+    setCriando(true);
+    const r = await criarProcessoComId(new FormData(ev.currentTarget));
+    if (!r.ok) { setCriando(false); return setErro(r.erro); }
+    const falhas = arquivos.length ? await enviarArquivosProcesso(r.id, arquivos) : [];
+    if (falhas.length) {
+      setCriadoId(r.id);
+      setCriando(false);
+      return setErro(`Processo criado, mas não foi possível enviar: ${falhas.join(", ")}. Abra o processo e anexe pela aba Anexos.`);
+    }
+    router.push(`/processos/${r.id}`);
+  }
 
   const fer = useMemo(() => new Set(feriados), [feriados]);
   const calc = useMemo(() => {
@@ -99,7 +129,7 @@ export default function NovoProcessoWizard({ etapas, itens, feriados, hoje, clie
           ))}
         </ol>
 
-        <form action={criarProcesso} className="px-5 py-5">
+        <form onSubmit={criar} className="px-5 py-5">
           <input type="hidden" name="cliente" value={empresa} />
           <input type="hidden" name="cliente_id" value={clienteSel?.id ?? ""} />
           <input type="hidden" name="contato" value={contato} />
@@ -138,6 +168,27 @@ export default function NovoProcessoWizard({ etapas, itens, feriados, hoje, clie
               </div>
               <div><label className="label" htmlFor="contato">Contato no cliente</label><input id="contato" className="input" value={contato} onChange={(e) => setContato(e.target.value)} placeholder="Nome da pessoa" /></div>
               <div className="sm:col-span-2"><label className="label" htmlFor="desc">Descrição / referência</label><textarea id="desc" rows={3} className="textarea" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: container 40HC, origem Xangai" /></div>
+              <div className="sm:col-span-2">
+                <label className="label">Fotos e documentos</label>
+                <input ref={inputArquivos} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.zip" className="hidden" onChange={(e) => adicionarArquivos(e.target.files)} />
+                <div className="rounded-md border border-dashed border-line bg-sunken px-3 py-3"
+                  onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); adicionarArquivos(e.dataTransfer.files); }}>
+                  <button type="button" className="btn-ghost h-8 text-xs" onClick={() => inputArquivos.current?.click()}><Paperclip size={14} /> Anexar fotos ou documentos</button>
+                  <span className="ml-2 text-[11.5px] text-muted">ou arraste aqui · até {LIMITE_MB} MB por arquivo · ficam na aba Anexos do processo</span>
+                  {arquivos.length > 0 && (
+                    <ul className="mt-2.5 space-y-1">
+                      {arquivos.map((f, i) => (
+                        <li key={`${f.name}-${i}`} className="flex items-center gap-2 rounded bg-surface px-2.5 py-1.5 text-[12.5px]">
+                          <Paperclip size={12} className="shrink-0 text-subtle" />
+                          <span className="min-w-0 flex-1 truncate text-ink">{f.name}</span>
+                          <span className="num shrink-0 text-[11px] text-muted">{tamanhoTexto(f.size)}</span>
+                          <button type="button" className="text-subtle hover:text-bad-ink" aria-label={`Remover ${f.name}`} onClick={() => setArquivos((a) => a.filter((_, j) => j !== i))}><X size={13} /></button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -196,7 +247,7 @@ export default function NovoProcessoWizard({ etapas, itens, feriados, hoje, clie
               <div><h2 className="text-[15px] font-semibold">Revisão</h2><p className="text-xs text-muted">Confira antes de criar. A primeira etapa começa hoje.</p></div>
               <dl className="grid gap-x-6 gap-y-2 rounded-md border border-line px-4 py-3 text-[13px] sm:grid-cols-2">
                 {[["Cliente", `${empresa || "—"}${empresa && !clienteSel ? " (novo)" : ""}`], ["Contato", contato || "—"], ["Plano", plano], ["Certificação", cert === "sim" ? "Sim" : "Não"],
-                  ["Tipo de ordem", ger === "ntl" ? "Gerenciamento NTL" : ger === "proprio" ? "Próprio NLG" : "Definir depois"], ["Descrição", descricao || "—"]].map(([k, v]) => (
+                  ["Tipo de ordem", ger === "ntl" ? "Gerenciamento NTL" : ger === "proprio" ? "Próprio NLG" : "Definir depois"], ["Descrição", descricao || "—"], ["Arquivos", arquivos.length ? `${arquivos.length} arquivo${arquivos.length > 1 ? "s" : ""} (vão para a aba Anexos)` : "—"]].map(([k, v]) => (
                   <div key={k} className="grid grid-cols-[110px_1fr]"><dt className="text-muted">{k}</dt><dd className="text-ink">{v}</dd></div>
                 ))}
               </dl>
@@ -218,12 +269,16 @@ export default function NovoProcessoWizard({ etapas, itens, feriados, hoje, clie
             </div>
           )}
 
-          {erro && <p className="mt-4 text-[13px] text-bad-ink">{erro}</p>}
+          {erro && (
+            <p className="mt-4 text-[13px] text-bad-ink">
+              {erro}{criadoId && <> <Link href={`/processos/${criadoId}?tab=anexos`} className="font-medium underline">Abrir processo</Link></>}
+            </p>
+          )}
 
           <div className="mt-6 flex items-center justify-between border-t border-line pt-4">
             {passo > 0 ? <button type="button" className="btn-ghost" onClick={() => setPasso((p) => p - 1)}><ArrowLeft size={14} /> Voltar</button> : <Link href="/processos" className="btn-quiet">Cancelar</Link>}
             {passo < 3 ? <button type="button" className="btn-primary" onClick={avancar}>Continuar <ArrowRight size={14} /></button>
-              : <SubmitButton pendente="Criando…">Criar processo</SubmitButton>}
+              : <button type="submit" className="btn-primary" disabled={criando || !!criadoId}>{criando ? (arquivos.length ? "Criando e enviando arquivos…" : "Criando…") : "Criar processo"}</button>}
           </div>
         </form>
       </div>

@@ -34,6 +34,22 @@ export async function criarProcesso(fd: FormData) {
   redirect(`/processos/${data}`);
 }
 
+export async function criarProcessoComId(fd: FormData): Promise<{ ok: true; id: string } | { ok: false; erro: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("criar_processo_completo", {
+    p_cliente: txt(fd, "cliente"),
+    p_plano: txt(fd, "plano"),
+    p_descricao: txt(fd, "descricao"),
+    p_certificacao: fd.get("certificacao") === "on",
+    p_cliente_id: txt(fd, "cliente_id") || null,
+    p_contato: txt(fd, "contato") || null,
+    p_gerenciamento: txt(fd, "gerenciamento") || null,
+  });
+  if (error) return { ok: false, erro: error.message };
+  revalidatePath("/", "layout");
+  return { ok: true, id: String(data) };
+}
+
 export async function avancarProcesso(fd: FormData) {
   const supabase = await createClient();
   const id = txt(fd, "processo_id");

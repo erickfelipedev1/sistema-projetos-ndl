@@ -12,7 +12,7 @@ export type AnexoView = { id: string; nome: string; tamanho: number | null; auto
 export type Destino = { processo_id?: string | null; processo_etapa_id?: string | null; cliente_id?: string | null };
 export type GrupoAnexos = { chave: string; titulo: string; sub?: string; href?: string; destaque?: boolean; anexos: AnexoView[]; destino?: Destino };
 
-const LIMITE_MB = 50;
+export const LIMITE_MB = 50;
 
 export function tamanhoTexto(b: number | null) {
   if (b == null) return "";
@@ -24,6 +24,31 @@ export function tamanhoTexto(b: number | null) {
 function nomeSeguro(nome: string) {
   const limpo = nome.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_").replace(/_+/g, "_");
   return limpo.slice(-120) || "arquivo";
+}
+
+/** envia arquivos gerais para um processo (usado ao criar o processo); devolve os nomes que falharam */
+export async function enviarArquivosProcesso(processoId: string, arquivos: File[]): Promise<string[]> {
+  const supabase = createClient();
+  const falhas: string[] = [];
+  for (const f of arquivos) {
+    try {
+      const caminho = `${processoId}/geral/${crypto.randomUUID()}-${nomeSeguro(f.name)}`;
+      const up = await supabase.storage.from("anexos").upload(caminho, f, { contentType: f.type || undefined, upsert: false });
+      if (up.error) throw new Error(up.error.message);
+      const { error } = await supabase.from("anexos").insert({
+        processo_id: processoId, processo_etapa_id: null, cliente_id: null,
+        nome: f.name, caminho, tamanho: f.size, tipo_mime: f.type || null,
+      });
+      if (error) {
+        await supabase.storage.from("anexos").remove([caminho]);
+        throw new Error(error.message);
+      }
+      await registrarAnexo(processoId, f.name);
+    } catch {
+      falhas.push(f.name);
+    }
+  }
+  return falhas;
 }
 
 /** envia arquivos para o Storage (bucket privado "anexos") e registra na tabela anexos */
