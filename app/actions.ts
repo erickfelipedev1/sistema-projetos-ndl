@@ -490,6 +490,16 @@ export async function recotarProcesso(fd: FormData) {
   revalidatePath("/", "layout");
 }
 
+// Sourcing: a coordenação direciona o projeto para quem vai conduzi-lo
+export async function direcionarProjeto(fd: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("direcionar_projeto", {
+    p_processo_id: txt(fd, "processo_id"), p_responsavel: txt(fd, "responsavel"),
+  });
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
 // Segmentos do sourcing: nome e fornecedores (um por linha)
 export async function salvarSegmento(fd: FormData) {
   const supabase = await createClient();

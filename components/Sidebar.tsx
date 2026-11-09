@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { BookOpen, Building2, ChevronDown, LayoutDashboard, ListChecks, Mail, MessagesSquare, Settings, Truck, Workflow, LogOut } from "lucide-react";
+import { BookOpen, Building2, ChevronDown, LayoutDashboard, ListChecks, Mail, MessagesSquare, Route, Settings, Truck, Workflow, LogOut } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import Image from "next/image";
 
-type Contagens = { ativos: number; minhas: number; atrasadasMinhas: number; chat: number; demandas: number };
+type Contagens = { ativos: number; minhas: number; atrasadasMinhas: number; chat: number; demandas: number; sourcing: number };
 
 export default function Sidebar({ nome, cargo, contagens, sair }: { nome: string; cargo: string | null; contagens: Contagens; sair: () => void }) {
   const path = usePathname();
@@ -56,6 +56,10 @@ export default function Sidebar({ nome, cargo, contagens, sair }: { nome: string
             <Sub href="/processos?visao=cancelado" rotulo="Cancelados" ativo={path === "/processos" && visao === "cancelado"} />
           </div>
         )}
+        <Item href="/sourcing" icone={Route} rotulo="Sourcing" ativo={path.startsWith("/sourcing")}
+          extra={contagens.sourcing > 0 ? (
+            <span title="Projetos aguardando direcionamento" className="num hidden rounded bg-warn px-1.5 text-[11px] font-semibold text-white lg:inline">{contagens.sourcing}</span>
+          ) : null} />
         <Item href="/minhas" icone={ListChecks} rotulo="Minhas tarefas" ativo={path.startsWith("/minhas")}
           extra={contagens.minhas > 0 ? (
             <span className={`num hidden rounded px-1.5 text-[11px] font-semibold lg:inline ${contagens.atrasadasMinhas > 0 ? "bg-bad text-white" : "bg-white/15 text-white"}`}>{contagens.minhas}</span>

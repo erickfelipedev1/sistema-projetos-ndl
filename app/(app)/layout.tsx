@@ -13,13 +13,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
   if (!user) redirect("/login");
-  const [{ data: perfil }, { count: ativos }, { data: minhas }, { data: conversas }, { count: demandas }] = await Promise.all([
+  const [{ data: perfil }, { count: ativos }, { data: minhas }, { data: conversas }, { count: demandas }, { data: projetosAtuais }] = await Promise.all([
     supabase.from("profiles").select("nome,cargo,trocar_senha,tipo").eq("id", user.id).maybeSingle(),
     supabase.from("processos").select("id", { count: "exact", head: true }).eq("status", "ativo"),
     supabase.from("v_etapas_atuais").select("atrasada").contains("responsaveis", [user.id]),
     supabase.rpc("chat_conversas"),
     supabase.from("mensagens").select("id", { count: "exact", head: true }).eq("demanda_para", user.id).eq("demanda_status", "aberta"),
+    supabase.from("v_etapas_atuais").select("responsaveis").eq("nome", "Projeto (Flex / Premium / Full)"),
   ]);
+  const aguardandoSourcing = ((projetosAtuais ?? []) as { responsaveis: string[] }[]).filter((p) => p.responsaveis.length !== 1).length;
   if (perfil?.trocar_senha) redirect("/trocar-senha");
   if (perfil?.tipo === "cliente") redirect("/portal");
   const naoLidas = ((conversas ?? []) as { nao_lidas: number }[]).reduce((s, c) => s + (c.nao_lidas ?? 0), 0);
@@ -30,7 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Sidebar
           nome={nomeExibicao(perfil?.nome ?? user?.email)}
           cargo={perfil?.cargo ?? null}
-          contagens={{ ativos: ativos ?? 0, minhas: minhas?.length ?? 0, atrasadasMinhas: (minhas ?? []).filter((m) => m.atrasada).length, chat: naoLidas, demandas: demandas ?? 0 }}
+          contagens={{ ativos: ativos ?? 0, minhas: minhas?.length ?? 0, atrasadasMinhas: (minhas ?? []).filter((m) => m.atrasada).length, chat: naoLidas, demandas: demandas ?? 0, sourcing: aguardandoSourcing }}
           sair={sair}
         />
       </Suspense>
