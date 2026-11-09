@@ -215,6 +215,7 @@ export type Anexo = {
   tipo_mime: string | null;
   autor: string | null;
   created_at: string;
+  evento_id?: number | null;
 };
 
 export type Conversa = {

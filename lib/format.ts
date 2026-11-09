@@ -24,6 +24,13 @@ export function nomeExibicao(nome: string | null | undefined) {
   return n.split("@")[0].split(/[._-]+/).filter(Boolean).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
 }
 
+export function bytesTexto(b: number | null) {
+  if (b == null) return "";
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${Math.round(b / 1024)} KB`;
+  return `${(b / 1024 / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MB`;
+}
+
 export function nomesResponsaveis(ids: string[], label: string | null, perfis: Map<string, Profile>) {
   const nomes = ids.map((id) => nomeExibicao(perfis.get(id)?.nome)).filter(Boolean) as string[];
   if (nomes.length) return nomes.join(" / ");

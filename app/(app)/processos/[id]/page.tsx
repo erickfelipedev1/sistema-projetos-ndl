@@ -14,6 +14,8 @@ import Menu from "@/components/ui/Menu";
 import SubmitButton from "@/components/ui/SubmitButton";
 import EmptyState from "@/components/ui/EmptyState";
 import ActivityTimeline from "@/components/ui/ActivityTimeline";
+import ComentarForm from "@/components/processos/ComentarForm";
+import ListaComentarios, { type ComentarioView } from "@/components/processos/ListaComentarios";
 import ProcessTimeline, { estadoDe } from "@/components/processos/ProcessTimeline";
 import { PlanoTag } from "@/components/processos/ProcessCard";
 import Checklist from "@/components/Checklist";
@@ -97,6 +99,22 @@ export default async function DetalheProcesso({ params, searchParams }: { params
   const emailsAtual = atual ? emails.filter((m) => m.etapa_id === atual.etapa_id) : [];
   const comentarios = eventos.filter((e) => e.tipo === "comentario");
   const anexos = (anexosData ?? []) as Anexo[];
+  // anexos enviados junto com comentários: links assinados (bucket privado) só quando a aba está aberta
+  const urlsAnexos = new Map<string, string>();
+  if (tab === "comentarios") {
+    const doComentario = anexos.filter((a) => a.evento_id);
+    if (doComentario.length) {
+      const { data: urls } = await supabase.storage.from("anexos").createSignedUrls(doComentario.map((a) => a.caminho), 3600);
+      for (const u of urls ?? []) if (u.path && u.signedUrl) urlsAnexos.set(u.path, u.signedUrl);
+    }
+  }
+  const nomesPessoas = perfis.map((pf) => nomeExibicao(pf.nome ?? pf.email)).filter(Boolean);
+  const pessoasMencao = perfis.filter((pf) => pf.id !== user.id).map((pf) => ({ id: pf.id, nome: nomeExibicao(pf.nome ?? pf.email) })).filter((x) => x.nome);
+  const comentariosView: ComentarioView[] = comentarios.map((c) => ({
+    id: c.id, texto: c.texto, created_at: c.created_at,
+    autor: c.autor ? nomeExibicao(mapaPerfis.get(c.autor)?.nome ?? mapaPerfis.get(c.autor)?.email) || null : null,
+    anexos: anexos.filter((a) => a.evento_id === c.id).map((a) => ({ id: a.id, nome: a.nome, tamanho: a.tamanho, tipo_mime: a.tipo_mime, url: urlsAnexos.get(a.caminho) ?? null })),
+  }));
   const anexosAtual = atual ? anexos.filter((a) => a.processo_etapa_id === atual.id) : [];
   const gruposAnexos: GrupoAnexos[] = [
     ...(atual ? [{ chave: atual.id, titulo: `${atual.ordem}. ${nomeCurto(atual.nome)}`, sub: "Etapa atual", destaque: true,
@@ -429,13 +447,9 @@ export default async function DetalheProcesso({ params, searchParams }: { params
 
               {tab === "comentarios" && (
                 <div className="space-y-4">
-                  <form action={comentar} className="flex gap-2">
-                    <input type="hidden" name="processo_id" value={p.id} />
-                    <input name="texto" className="input" placeholder="Escreva um comentário para a equipe…" required />
-                    <SubmitButton className="btn-primary">Comentar</SubmitButton>
-                  </form>
-                  {comentarios.length ? (
-                    <ActivityTimeline mostrarProcesso={false} itens={comentarios.map((c) => ({ ...c, autor: c.autor ? mapaPerfis.get(c.autor)?.nome ?? null : null }))} />
+                  <ComentarForm processoId={p.id} pessoas={pessoasMencao} />
+                  {comentariosView.length ? (
+                    <ListaComentarios itens={comentariosView} nomesPessoas={nomesPessoas} />
                   ) : <EmptyState compacto titulo="Nenhum comentário ainda" />}
                 </div>
               )}

@@ -27,7 +27,7 @@ function nomeSeguro(nome: string) {
 }
 
 /** envia arquivos gerais para um processo (usado ao criar o processo); devolve os nomes que falharam */
-export async function enviarArquivosProcesso(processoId: string, arquivos: File[]): Promise<string[]> {
+export async function enviarArquivosProcesso(processoId: string, arquivos: File[], eventoId?: number): Promise<string[]> {
   const supabase = createClient();
   const falhas: string[] = [];
   for (const f of arquivos) {
@@ -36,14 +36,14 @@ export async function enviarArquivosProcesso(processoId: string, arquivos: File[
       const up = await supabase.storage.from("anexos").upload(caminho, f, { contentType: f.type || undefined, upsert: false });
       if (up.error) throw new Error(up.error.message);
       const { error } = await supabase.from("anexos").insert({
-        processo_id: processoId, processo_etapa_id: null, cliente_id: null,
+        processo_id: processoId, processo_etapa_id: null, cliente_id: null, evento_id: eventoId ?? null,
         nome: f.name, caminho, tamanho: f.size, tipo_mime: f.type || null,
       });
       if (error) {
         await supabase.storage.from("anexos").remove([caminho]);
         throw new Error(error.message);
       }
-      await registrarAnexo(processoId, f.name);
+      if (eventoId == null) await registrarAnexo(processoId, f.name);
     } catch {
       falhas.push(f.name);
     }

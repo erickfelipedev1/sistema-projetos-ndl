@@ -101,6 +101,16 @@ export async function alterarResponsaveis(fd: FormData) {
   revalidatePath("/", "layout");
 }
 
+export async function comentarProcesso(processoId: string, texto: string, mencionados: string[]): Promise<{ ok: true; id: number } | { ok: false; erro: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("comentar_processo", {
+    p_processo_id: processoId, p_texto: texto, p_mencionados: mencionados,
+  });
+  if (error) return { ok: false, erro: error.message };
+  revalidatePath(`/processos/${processoId}`);
+  return { ok: true, id: Number(data) };
+}
+
 export async function comentar(fd: FormData) {
   const texto = txt(fd, "texto");
   const processoId = txt(fd, "processo_id");
