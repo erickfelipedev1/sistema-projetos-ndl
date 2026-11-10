@@ -26,14 +26,14 @@ import Anexos, { AnexarBotao, type GrupoAnexos } from "@/components/anexos/Anexo
 import { podeEditarEtapa, podeMarcarItem, responsaveisDoItem } from "@/lib/permissoes";
 import { Lock, Pause, Play, RefreshCcw as Recotar } from "lucide-react";
 import {
-  alterarPrazo, alterarResponsaveis, avancarProcesso, cancelarProcesso, comentar, definirSituacao, editarProcesso, pausarProcesso, recotarProcesso, retornarProcesso, salvarSegmento,
+  alterarPrazo, alterarResponsaveis, avancarProcesso, cancelarProcesso, comentar, definirSituacao, editarProcesso, pausarProcesso, recotarProcesso, retornarProcesso, enviarParaNLG, salvarSegmento,
 } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function DetalheProcesso({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; etapa?: string }> }) {
+export default async function DetalheProcesso({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; etapa?: string; erro?: string }> }) {
   const { id } = await params;
-  const { tab = "checklist", etapa: etapaParam } = await searchParams;
+  const { tab = "checklist", etapa: etapaParam, erro } = await searchParams;
   const { supabase, user, perfis, mapaPerfis, feriados, hoje } = await base();
 
   const [{ data: proc }, { data: etapasData }, { data: eventosData }, { data: checkData }, { data: emailsData }, { data: anexosData }, { data: clientesData }, { data: modelosResp }, { data: segmentosData }] = await Promise.all([
@@ -152,6 +152,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
 
   return (
     <div className="space-y-4">
+      {erro && <p role="alert" className="rounded-md border border-bad/40 bg-bad-soft px-3 py-2 text-[13px] text-bad-ink">{erro}</p>}
       {/* breadcrumb + cabeçalho */}
       <div>
         <nav className="mb-2 flex items-center gap-1 text-xs text-muted" aria-label="Trilha">
@@ -173,6 +174,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                   <Recotar size={11} /> Recotação {p.recotacoes} · {dataBR(p.ultima_recotacao_em)}
                 </span>
               )}
+              {p.enviado_nlg_em && <span className="chip bg-ok-soft text-ok-ink" title="Este processo seguiu para o sistema da NLG">Enviado para a NLG em {dataBR(p.enviado_nlg_em)}{p.enviado_nlg_codigo ? ` · ${p.enviado_nlg_codigo}` : ""}</span>}
               {p.contato && <span className="text-xs text-muted">· Contato: {p.contato}</span>}
             </div>
           </div>
@@ -192,6 +194,14 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                   <input type="hidden" name="processo_id" value={p.id} />
                   <div><label className="label">Motivo / o que o cliente pediu</label><input name="motivo" className="input" placeholder="Ex.: nova quantidade, outro fornecedor" /></div>
                   <div className="flex justify-end"><SubmitButton>Recotar e voltar para Projeto</SubmitButton></div>
+                </form>
+              </Modal>
+            )}
+            {p.status === "concluido" && !p.enviado_nlg_em && !!eu && (
+              <Modal rotulo="Enviar para a NLG" botaoClasse="btn-primary" titulo="Enviar para a NLG" descricao="A NLG abre este processo já no Booking, com cliente, plano e contato. Só envie se este processo vai seguir para importação — o envio não pode ser desfeito por aqui.">
+                <form action={enviarParaNLG} className="space-y-3">
+                  <input type="hidden" name="processo_id" value={p.id} />
+                  <div className="flex justify-end"><SubmitButton pendente="Enviando…">Enviar para a NLG</SubmitButton></div>
                 </form>
               </Modal>
             )}

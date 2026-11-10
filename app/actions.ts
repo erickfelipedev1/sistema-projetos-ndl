@@ -572,3 +572,46 @@ export async function excluirFornecedor(fd: FormData) {
   if (error) falhou(error.message);
   revalidatePath("/fornecedores");
 }
+
+// Envia o processo (Ordem concluída) para a NLG, sistema separado que cuida do Booking até a chegada.
+// A NLG responde com o código do processo lá; o envio é idempotente (mesmo id = mesmo processo).
+export async function enviarParaNLG(fd: FormData) {
+  const id = txt(fd, "processo_id");
+  const volta = `/processos/${id}`;
+  const erro = (m: string): never => redirect(`${volta}?erro=${encodeURIComponent(m)}`);
+
+  const url = process.env.NLG_URL?.replace(/\/$/, "");
+  const chave = process.env.NLG_RECEBER_SECRET;
+  if (!url || !chave) erro("Integração com a NLG não configurada (faltam NLG_URL e NLG_RECEBER_SECRET)");
+
+  const supabase = await createClient();
+  const { data: p } = await supabase.from("processos").select("*").eq("id", id).maybeSingle();
+  if (!p) erro("Processo não encontrado");
+  if (p.status !== "concluido") erro("Só dá para enviar quando a Ordem estiver concluída");
+  const { data: c } = p.cliente_id
+    ? await supabase.from("clientes").select("cnpj,contato,email,telefone").eq("id", p.cliente_id).maybeSingle()
+    : { data: null };
+
+  let resp: Response;
+  try {
+    resp = await fetch(`${url}/api/receber`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${chave}` },
+      body: JSON.stringify({
+        origem_id: p.id, origem_codigo: p.codigo, cliente: p.cliente, plano: p.plano, descricao: p.descricao,
+        certificacao: p.certificacao, gerenciamento: p.gerenciamento,
+        contato: p.contato ?? c?.contato ?? "", cnpj: c?.cnpj ?? "", email: c?.email ?? "", telefone: c?.telefone ?? "",
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch {
+    return erro("Não consegui falar com a NLG (sem resposta). Tente de novo em instantes.");
+  }
+  const corpo = (await resp.json().catch(() => ({}))) as { codigo?: string; erro?: string };
+  if (!resp.ok) erro(`A NLG recusou o envio: ${corpo.erro ?? resp.status}`);
+
+  const { error } = await supabase.rpc("marcar_enviado_nlg", { p_processo_id: id, p_codigo: corpo.codigo ?? "" });
+  if (error) erro(`Enviado, mas não consegui registrar aqui: ${error.message}`);
+  revalidatePath("/", "layout");
+  redirect(volta);
+}

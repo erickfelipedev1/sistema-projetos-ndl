@@ -91,6 +91,8 @@ export type Processo = {
   certificacao: boolean;
   contato: string | null;
   gerenciamento: "ntl" | "proprio" | null;
+  enviado_nlg_em?: string | null;
+  enviado_nlg_codigo?: string | null;
   recotacoes?: number;
   ultima_recotacao_em?: string | null;
 };
