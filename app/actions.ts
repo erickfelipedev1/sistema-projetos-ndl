@@ -522,8 +522,10 @@ export async function direcionarProjeto(fd: FormData) {
   const { error } = await supabase.rpc("direcionar_projeto", {
     p_processo_id: txt(fd, "processo_id"), p_responsavel: txt(fd, "responsavel"),
   });
-  if (error) falhou(error.message);
+  // o erro volta para a própria tela (em produção, erro lançado numa action vira mensagem genérica)
+  if (error) redirect(`/sourcing?erro=${encodeURIComponent(error.message)}`);
   revalidatePath("/", "layout");
+  redirect("/sourcing");
 }
 
 // Segmentos do sourcing: nome e fornecedores (um por linha)

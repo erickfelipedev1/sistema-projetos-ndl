@@ -16,7 +16,8 @@ export const dynamic = "force-dynamic";
 
 const PROJETO = "Projeto (Flex / Premium / Full)";
 
-export default async function Sourcing() {
+export default async function Sourcing({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
+  const { erro } = await searchParams;
   const { supabase, etapas, perfis, mapaPerfis } = await base();
   const { data } = await supabase.from("v_etapas_atuais").select("*").eq("nome", PROJETO)
     .order("prazo_em", { ascending: true, nullsFirst: false });
@@ -75,6 +76,7 @@ export default async function Sourcing() {
 
   return (
     <div className="space-y-5">
+      {erro && <p role="alert" className="rounded-md border border-bad/40 bg-bad-soft px-3 py-2 text-[13px] text-bad-ink"><strong className="font-semibold">Não foi possível direcionar:</strong> {erro}</p>}
       <PageHeader titulo="Sourcing" subtitulo="Receba os projetos novos e direcione cada um para quem vai conduzi-lo. A pessoa recebe uma demanda no chat e os itens do checklist passam para ela." />
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Resumo">
