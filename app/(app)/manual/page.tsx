@@ -89,6 +89,9 @@ export default async function Manual({ searchParams }: { searchParams: Promise<{
                   <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-muted">
                     <li>Ao concluir uma etapa, a próxima começa automaticamente com prazo e responsável.</li>
                     <li>Distribuição: a Ana Clara escolhe UMA pessoa para conduzir o projeto (Gabriella ou Giovanna no sourcing, Alycia na estimativa de custos). Ao direcionar, o Projeto começa com essa pessoa.</li>
+                    <li>Aba Fornecedores do processo: fábrica, contato, histórico da negociação, documentos (PI, PL, datasheets) e qual o cliente escolheu.</li>
+                    <li>Aba Documentos: o primeiro bloco aparece no portal do cliente; o olho libera ou tira qualquer arquivo do portal.</li>
+                    <li>Habilitação de Radar: fica no cadastro do cliente (documentos, limite, validade, procuração) e o limite aparece em cada processo dele.</li>
                     <li>Projeto que não virou ordem: use “Encerrar sem ordem” com o resultado (deu preço ou não) e o motivo. Ele vai para Concluídos, onde dá para filtrar por resultado e motivo.</li>
                     <li>Prazos em dias úteis: fins de semana e feriados cadastrados não contam.</li>
                     <li>Projeto: Flex 10 · Full 15 · Premium 25 dias. Cotação: 1 dia, 2 com certificação.</li>

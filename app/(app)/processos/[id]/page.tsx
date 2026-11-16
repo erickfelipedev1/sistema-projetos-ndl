@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, CalendarClock, ChevronRight, CircleCheck, RotateCcw, XCircle, Pencil, RefreshCcw } from "lucide-react";
 import { base, previsaoChegada, duracaoUteis } from "@/lib/dados";
-import type { Anexo, ChecklistItem, EmailModelo, Evento, Processo, ProcessoEtapa, Segmento } from "@/lib/types";
+import type { Anexo, ChecklistItem, ClienteRadar, EmailModelo, Evento, Processo, ProcessoEtapa, ProcessoFornecedor, Segmento } from "@/lib/types";
+import { RADAR_STATUS, radarResumo } from "@/lib/radar";
+import FornecedoresProcesso from "@/components/processos/FornecedoresProcesso";
 import { dataBR, dataHoraBR, nomeExibicao, nomesResponsaveis, preencherModelo, GERENCIAMENTO_LABEL, MOTIVOS_ENCERRAMENTO, RESULTADO_LABEL } from "@/lib/format";
 import { normaliza } from "@/lib/login";
 import { diasUteisEntre, paraDataBR } from "@/lib/diasUteis";
@@ -34,10 +36,11 @@ export const dynamic = "force-dynamic";
 
 export default async function DetalheProcesso({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; etapa?: string; erro?: string }> }) {
   const { id } = await params;
-  const { tab = "checklist", etapa: etapaParam, erro } = await searchParams;
+  const { tab: tabParam = "checklist", etapa: etapaParam, erro } = await searchParams;
+  const tab = tabParam === "anexos" ? "documentos" : tabParam;   // a aba Anexos virou Documentos
   const { supabase, user, perfis, mapaPerfis, feriados, hoje } = await base();
 
-  const [{ data: proc }, { data: etapasData }, { data: eventosData }, { data: checkData }, { data: emailsData }, { data: anexosData }, { data: clientesData }, { data: modelosResp }, { data: segmentosData }] = await Promise.all([
+  const [{ data: proc }, { data: etapasData }, { data: eventosData }, { data: checkData }, { data: emailsData }, { data: anexosData }, { data: clientesData }, { data: modelosResp }, { data: segmentosData }, { data: fornecedoresData }, { data: catalogoData }, { data: radarData }] = await Promise.all([
     supabase.from("processos").select("*").eq("id", id).maybeSingle(),
     supabase.from("processo_etapas").select("*").eq("processo_id", id).order("ordem"),
     supabase.from("processo_eventos").select("*").eq("processo_id", id).order("created_at", { ascending: false }),
@@ -47,6 +50,9 @@ export default async function DetalheProcesso({ params, searchParams }: { params
     supabase.from("clientes").select("id,nome").order("nome"),
     supabase.from("checklist_modelo").select("id,responsaveis,responsaveis_label"),
     supabase.from("processo_segmentos").select("*").eq("processo_id", id).order("ordem"),
+    supabase.from("processo_fornecedores").select("*").eq("processo_id", id).order("created_at"),
+    supabase.from("fornecedores").select("id,nome,produto").order("nome").limit(2000),
+    supabase.from("processos").select("clientes(cliente_radar(*))").eq("id", id).maybeSingle(),
   ]);
   const segmentos = (segmentosData ?? []) as Segmento[];
   const respItens: Record<number, string> = Object.fromEntries(((modelosResp ?? []) as { id: number; responsaveis: string[]; responsaveis_label: string | null }[])
@@ -133,13 +139,25 @@ export default async function DetalheProcesso({ params, searchParams }: { params
     anexos: anexos.filter((a) => a.evento_id === c.id).map((a) => ({ id: a.id, nome: a.nome, tamanho: a.tamanho, tipo_mime: a.tipo_mime, url: urlsAnexos.get(a.caminho) ?? null })),
   }));
   const anexosAtual = atual ? anexos.filter((a) => a.processo_etapa_id === atual.id) : [];
+  const fornecedoresProc = (fornecedoresData ?? []) as ProcessoFornecedor[];
+  type ComRadar = { cliente_radar: ClienteRadar | ClienteRadar[] | null };
+  const cliRel = (radarData as { clientes: ComRadar | ComRadar[] | null } | null)?.clientes;
+  const radarRel = (Array.isArray(cliRel) ? cliRel[0] : cliRel)?.cliente_radar;
+  const radar = Array.isArray(radarRel) ? radarRel[0] ?? null : radarRel ?? null;
+  const nomeFornecedor = new Map(fornecedoresProc.map((f) => [f.id, f.fabrica]));
   const gruposAnexos: GrupoAnexos[] = [
-    ...(atual ? [{ chave: atual.id, titulo: `${atual.ordem}. ${nomeCurto(atual.nome)}`, sub: "Etapa atual", destaque: true,
+    { chave: "portal", titulo: "No portal do cliente", destaque: true, compartilhar: true,
+      sub: "O cliente vê e baixa estes arquivos no portal (ex.: cotações dos fornecedores). Arquivos anexados aqui já vão liberados.",
+      vazio: "Nada liberado ainda. Anexe aqui ou use o olho em qualquer arquivo abaixo ou na aba Fornecedores.",
+      anexos: anexos.filter((a) => a.visivel_cliente), destino: { processo_id: p.id, visivel_cliente: true } },
+    ...(atual ? [{ chave: atual.id, titulo: `${atual.ordem}. ${nomeCurto(atual.nome)}`, sub: "Etapa atual · interno", compartilhar: true,
       anexos: anexosAtual, destino: { processo_id: p.id, processo_etapa_id: atual.id } }] : []),
-    { chave: "geral", titulo: "Arquivos do cliente / gerais", sub: "Documentos do processo que não são de uma etapa específica",
-      anexos: anexos.filter((a) => !a.processo_etapa_id), destino: { processo_id: p.id } },
+    { chave: "geral", titulo: "Arquivos do cliente / gerais", sub: "Documentos do processo que não são de uma etapa específica · interno", compartilhar: true,
+      anexos: anexos.filter((a) => !a.processo_etapa_id && !a.processo_fornecedor_id), destino: { processo_id: p.id } },
+    ...(anexos.some((a) => a.processo_fornecedor_id) ? [{ chave: "fornecedores", titulo: "Dos fornecedores", sub: "Anexados na aba Fornecedores · interno", compartilhar: true,
+      anexos: anexos.filter((a) => a.processo_fornecedor_id).map((a) => ({ ...a, nome: `${nomeFornecedor.get(a.processo_fornecedor_id!) ?? ""} · ${a.nome}` })) }] : []),
     ...etapas.filter((e) => e.id !== atual?.id && (e.status !== "pendente" || anexos.some((a) => a.processo_etapa_id === e.id))).map((e) => ({
-      chave: e.id, titulo: `${e.ordem}. ${nomeCurto(e.nome)}`, sub: e.status === "concluida" ? "Concluída" : undefined,
+      chave: e.id, titulo: `${e.ordem}. ${nomeCurto(e.nome)}`, sub: e.status === "concluida" ? "Concluída · interno" : "Interno", compartilhar: true,
       anexos: anexos.filter((a) => a.processo_etapa_id === e.id), destino: { processo_id: p.id, processo_etapa_id: e.id },
     })),
   ];
@@ -416,7 +434,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                 </>)}
                 <AnexarBotao destino={{ processo_id: p.id, processo_etapa_id: atual.id }} />
                 {anexosAtual.length > 0 && (
-                  <Link href={tabHref("anexos")} className="text-xs text-primary-2 hover:underline">{anexosAtual.length} arquivo{anexosAtual.length > 1 ? "s" : ""} nesta etapa</Link>
+                  <Link href={tabHref("documentos")} className="text-xs text-primary-2 hover:underline">{anexosAtual.length} arquivo{anexosAtual.length > 1 ? "s" : ""} nesta etapa</Link>
                 )}
               </div>
             </section>
@@ -429,7 +447,8 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                 { chave: "checklist", rotulo: "Checklist", href: tabHrefEtapa("checklist"), contagem: checkAtual.length ? checkAtual.length - pendentes.length : undefined },
                 { chave: "emails", rotulo: "E-mails", href: tabHrefEtapa("emails"), contagem: emailsAtual.length || undefined },
                 { chave: "segmentos", rotulo: "Segmentos", href: tabHref("segmentos"), contagem: segmentos.length || undefined },
-                { chave: "anexos", rotulo: "Anexos", href: tabHref("anexos"), contagem: anexos.length || undefined },
+                { chave: "fornecedores", rotulo: "Fornecedores", href: tabHref("fornecedores"), contagem: fornecedoresProc.length || undefined },
+                { chave: "documentos", rotulo: "Documentos", href: tabHref("documentos"), contagem: anexos.filter((a) => a.visivel_cliente).length || undefined },
                 { chave: "comentarios", rotulo: "Comentários", href: tabHref("comentarios"), contagem: comentarios.length || undefined },
                 { chave: "historico", rotulo: "Histórico", href: tabHref("historico") },
                 { chave: "dados", rotulo: "Dados", href: tabHref("dados") },
@@ -520,9 +539,14 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                 </div>
               )}
 
-              {tab === "anexos" && (
+              {tab === "fornecedores" && (
+                <FornecedoresProcesso processoId={p.id} fornecedores={fornecedoresProc} anexos={anexos} autores={nomes}
+                  catalogo={(catalogoData ?? []) as { id: string; nome: string; produto: string | null }[]} />
+              )}
+
+              {tab === "documentos" && (
                 <div className="space-y-3">
-                  <p className="text-xs text-muted">Arquivos ficam guardados por etapa. Só a equipe vê — o cliente não tem acesso pelo portal. Limite de 50 MB por arquivo.</p>
+                  <p className="text-xs text-muted">O primeiro bloco é o que o cliente vê no portal; o resto é só da equipe. O olho libera ou tira um arquivo do portal. Limite de 50 MB por arquivo.</p>
                   <Anexos grupos={gruposAnexos} autores={nomes} />
                 </div>
               )}
@@ -608,6 +632,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
               {[
                 ["Cliente", p.cliente], ["Contato", p.contato ?? "—"], ["Código", p.codigo], ["Plano", p.plano ?? "—"],
                 ["Certificação", p.certificacao ? "Sim" : "Não"], ["Tipo de ordem", p.gerenciamento ? GERENCIAMENTO_LABEL[p.gerenciamento] : "Não definido"],
+                ["Radar", radar ? `${RADAR_STATUS[radar.status]}${radarResumo(radar) ? ` · ${radarResumo(radar)}` : ""}` : "Não registrado"],
                 ["Aberto em", dataBR(p.created_at)], ["Descrição", p.descricao ?? "—"],
               ].map(([k, v]) => (
                 <div key={k} className="grid grid-cols-[110px_1fr] gap-2 px-4 py-2"><dt className="text-muted">{k}</dt><dd className="text-ink">{v}</dd></div>

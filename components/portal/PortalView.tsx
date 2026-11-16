@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, PackageCheck, Search, Ship, X } from "lucide-react";
-import type { PortalDados, PortalProcesso } from "@/lib/types";
+import { Check, Download, FileText, Loader2, PackageCheck, Search, Ship, X } from "lucide-react";
+import type { PortalDados, PortalDocumento, PortalProcesso } from "@/lib/types";
+import { linkDocumentoPortal } from "@/app/actions";
+import { tamanhoTexto } from "@/components/anexos/Anexos";
 import { dataBR } from "@/lib/format";
 import { paraDataBR } from "@/lib/diasUteis";
 import { nomeCurto } from "@/lib/status";
@@ -69,6 +71,29 @@ function Barra({ pct, cor }: { pct: number; cor: string }) {
   return <div className="h-2.5 overflow-hidden rounded-md bg-sunken"><div className="h-full rounded-md" style={{ width: `${pct}%`, background: cor }} /></div>;
 }
 
+function Documento({ d }: { d: PortalDocumento }) {
+  const [carregando, setCarregando] = useState(false);
+  const [falhou, setFalhou] = useState(false);
+  return (
+    <li className="flex items-center gap-2.5 py-2">
+      <FileText size={16} className="shrink-0 text-subtle" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13px] text-ink" title={d.nome}>{d.nome}</p>
+        <p className="text-[11px] text-subtle">{tamanhoTexto(d.tamanho)}{d.tamanho ? " · " : ""}{dBR(d.em)}{falhou ? " · não foi possível baixar, tente de novo" : ""}</p>
+      </div>
+      <button type="button" className="btn-ghost h-8 text-xs" disabled={carregando}
+        onClick={async () => {
+          setCarregando(true); setFalhou(false);
+          const url = await linkDocumentoPortal(d.id).catch(() => null);
+          setCarregando(false);
+          if (url) window.location.href = url; else setFalhou(true);
+        }}>
+        {carregando ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Baixar
+      </button>
+    </li>
+  );
+}
+
 function Detalhe({ p, medias, onClose }: { p: PortalProcesso; medias: Map<number, number>; onClose: () => void }) {
   const atual = atualDe(p);
   const total = p.etapas.length;
@@ -97,6 +122,12 @@ function Detalhe({ p, medias, onClose }: { p: PortalProcesso; medias: Map<number
             <p className="rounded-md border border-warn/40 bg-warn-soft/60 px-3 py-2 text-[13px] text-warn-ink">
               <strong className="font-semibold">Estamos aguardando {atual.aguardando_o_que ?? "o seu retorno"}.</strong> Assim que recebermos, seguimos com o processo.
             </p>
+          )}
+          {(p.documentos?.length ?? 0) > 0 && (
+            <section>
+              <h4 className="mb-1 text-[12px] font-bold tracking-wider text-muted uppercase">Documentos ({p.documentos!.length})</h4>
+              <ul className="divide-y divide-line border-y border-line">{p.documentos!.map((d) => <Documento key={d.id} d={d} />)}</ul>
+            </section>
           )}
           <section>
             <h4 className="mb-3 text-[12px] font-bold tracking-wider text-muted uppercase">Etapas do processo</h4>

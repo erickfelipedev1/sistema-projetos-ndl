@@ -192,6 +192,27 @@ export type Cliente = {
   created_at: string;
 };
 
+/** Habilitação de Radar (Siscomex) do cliente */
+export type ClienteRadar = {
+  cliente_id: string;
+  status: "documentos" | "em_analise" | "habilitado" | "indeferido" | "inativo";
+  doc_identidade: boolean;
+  doc_contrato_social: boolean;
+  doc_ecpf: boolean;
+  modalidade: string | null;
+  limite_usd: number | null;
+  limite_periodo: string | null;
+  deferido_em: string | null;
+  validade_ate: string | null;
+  dte_ecac: boolean;
+  devolutiva_em: string | null;
+  procuracao_assinada: boolean;
+  procuracao_firma: boolean;
+  procuracao_em: string | null;
+  historico: string | null;
+  updated_at: string;
+};
+
 export type Fornecedor = {
   id: string;
   nome: string;
@@ -220,6 +241,27 @@ export type Anexo = {
   autor: string | null;
   created_at: string;
   evento_id?: number | null;
+  processo_fornecedor_id?: string | null;
+  visivel_cliente?: boolean;
+  categoria?: string | null;
+  compartilhado_em?: string | null;
+};
+
+/** fornecedor negociado num projeto (aba Fornecedores do processo) */
+export type ProcessoFornecedor = {
+  id: string;
+  processo_id: string;
+  fornecedor_id: string | null;
+  fabrica: string;
+  contato_nome: string | null;
+  telefone: string | null;
+  email: string | null;
+  site: string | null;
+  negociacao: string | null;
+  escolhido: boolean;
+  condicoes: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Conversa = {
@@ -247,5 +289,6 @@ export type Mensagem = {
 };
 
 export type PortalEtapa = { ordem: number; nome: string; area: string; tipo: string; status: "pendente" | "em_andamento" | "concluida"; iniciado_em: string | null; concluido_em: string | null; aguardando_cliente?: boolean; aguardando_o_que?: string | null };
-export type PortalProcesso = { id: string; codigo: string; plano: string | null; status: string; descricao: string | null; aberto_em: string; concluido_em: string | null; previsao: string | null; etapas: PortalEtapa[] };
+export type PortalDocumento = { id: string; nome: string; tamanho: number | null; tipo_mime: string | null; em: string };
+export type PortalProcesso = { id: string; codigo: string; plano: string | null; status: string; descricao: string | null; aberto_em: string; concluido_em: string | null; previsao: string | null; etapas: PortalEtapa[]; documentos?: PortalDocumento[] };
 export type PortalDados = { cliente: { id: string; nome: string }; processos: PortalProcesso[] } | null;

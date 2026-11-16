@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { ChevronRight, Eye, Plus } from "lucide-react";
 import { base } from "@/lib/dados";
-import type { Anexo, Cliente, EtapaAtual, Processo } from "@/lib/types";
+import type { Anexo, Cliente, ClienteRadar, EtapaAtual, Processo } from "@/lib/types";
+import RadarCliente from "@/components/clientes/RadarCliente";
 import { dataBR } from "@/lib/format";
 import { nomeCurto } from "@/lib/status";
 import EmptyState from "@/components/ui/EmptyState";
@@ -20,12 +21,13 @@ export const dynamic = "force-dynamic";
 export default async function ClienteDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { supabase, perfis } = await base();
-  const [{ data: cli }, { data: procData }, { data: atuaisData }, { data: acessos }, { data: anexosData }] = await Promise.all([
+  const [{ data: cli }, { data: procData }, { data: atuaisData }, { data: acessos }, { data: anexosData }, { data: radarData }] = await Promise.all([
     supabase.from("clientes").select("*").eq("id", id).maybeSingle(),
     supabase.from("processos").select("*").eq("cliente_id", id).order("created_at", { ascending: false }),
     supabase.from("v_etapas_atuais").select("processo_id,ordem,nome,prazo_em,atrasada,dias_restantes"),
     supabase.from("profiles").select("id,nome,usuario,trocar_senha").eq("tipo", "cliente").eq("cliente_id", id).order("nome"),
     supabase.from("anexos").select("*").eq("cliente_id", id).order("created_at", { ascending: false }),
+    supabase.from("cliente_radar").select("*").eq("cliente_id", id).maybeSingle(),
   ]);
   if (!cli) notFound();
   const c = cli as Cliente;
@@ -38,9 +40,9 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
 
   const grupos: GrupoAnexos[] = [
     { chave: "cliente", titulo: "Arquivos do cliente", sub: "Documentos da empresa, sem processo específico (contrato social, cadastro, procurações…)",
-      anexos: anexos.filter((a) => !a.processo_id), destino: { cliente_id: c.id }, destaque: true },
+      anexos: anexos.filter((a) => !a.processo_id && a.categoria !== "radar"), destino: { cliente_id: c.id }, destaque: true },
     ...processos.map((p) => ({
-      chave: p.id, titulo: `${p.codigo}${p.descricao ? ` · ${p.descricao}` : ""}`, href: `/processos/${p.id}?tab=anexos`,
+      chave: p.id, titulo: `${p.codigo}${p.descricao ? ` · ${p.descricao}` : ""}`, href: `/processos/${p.id}?tab=documentos`,
       sub: "Arquivos do processo (todas as etapas)", anexos: anexos.filter((a) => a.processo_id === p.id),
     })).filter((g) => g.anexos.length),
   ];
@@ -94,6 +96,8 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
               </div>
             ) : <EmptyState compacto titulo="Nenhum processo deste cliente" acao={<Link href={`/processos/novo?cliente=${c.id}`} className="btn-primary"><Plus size={14} /> Abrir processo</Link>} />}
           </section>
+
+          <RadarCliente clienteId={c.id} radar={(radarData ?? null) as ClienteRadar | null} anexos={anexos.filter((a) => a.categoria === "radar")} autores={autores} />
 
           <section className="card">
             <div className="card-header"><h2 className="card-title">Arquivos</h2><span className="text-xs text-muted">{anexos.length} arquivo{anexos.length === 1 ? "" : "s"}</span></div>

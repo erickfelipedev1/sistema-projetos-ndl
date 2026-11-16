@@ -3,14 +3,15 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Download, FileText, Loader2, Paperclip, Trash2, Upload } from "lucide-react";
+import { Download, Eye, EyeOff, FileText, Loader2, Paperclip, Trash2, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { excluirAnexo, linkAnexo, registrarAnexo } from "@/app/actions";
+import { compartilharAnexo, excluirAnexo, linkAnexo, registrarAnexo } from "@/app/actions";
 import SubmitButton from "@/components/ui/SubmitButton";
 
-export type AnexoView = { id: string; nome: string; tamanho: number | null; autor: string | null; created_at: string };
-export type Destino = { processo_id?: string | null; processo_etapa_id?: string | null; cliente_id?: string | null };
-export type GrupoAnexos = { chave: string; titulo: string; sub?: string; href?: string; destaque?: boolean; anexos: AnexoView[]; destino?: Destino };
+export type AnexoView = { id: string; nome: string; tamanho: number | null; autor: string | null; created_at: string; visivel_cliente?: boolean };
+export type Destino = { processo_id?: string | null; processo_etapa_id?: string | null; cliente_id?: string | null; processo_fornecedor_id?: string | null; visivel_cliente?: boolean; categoria?: string };
+/** compartilhar: mostra o botão de liberar/retirar o arquivo do portal do cliente */
+export type GrupoAnexos = { chave: string; titulo: string; sub?: string; href?: string; destaque?: boolean; anexos: AnexoView[]; destino?: Destino; compartilhar?: boolean; vazio?: string };
 
 export const LIMITE_MB = 50;
 
@@ -68,7 +69,9 @@ export function useEnviar(destino: Destino) {
     const supabase = createClient();
     try {
       for (const f of lista) {
-        const pasta = destino.processo_id ? `${destino.processo_id}/${destino.processo_etapa_id ?? "geral"}` : `clientes/${destino.cliente_id}`;
+        const pasta = destino.processo_id
+          ? `${destino.processo_id}/${destino.processo_fornecedor_id ? `fornecedores/${destino.processo_fornecedor_id}` : destino.processo_etapa_id ?? "geral"}`
+          : `clientes/${destino.cliente_id}`;
         const caminho = `${pasta}/${crypto.randomUUID()}-${nomeSeguro(f.name)}`;
         const up = await supabase.storage.from("anexos").upload(caminho, f, { contentType: f.type || undefined, upsert: false });
         if (up.error) throw new Error(up.error.message);
@@ -76,13 +79,16 @@ export function useEnviar(destino: Destino) {
           processo_id: destino.processo_id ?? null,
           processo_etapa_id: destino.processo_etapa_id ?? null,
           cliente_id: destino.cliente_id ?? null,
+          ...(destino.processo_fornecedor_id ? { processo_fornecedor_id: destino.processo_fornecedor_id } : {}),
+          ...(destino.categoria ? { categoria: destino.categoria } : {}),
+          ...(destino.visivel_cliente ? { visivel_cliente: true, compartilhado_em: new Date().toISOString() } : {}),
           nome: f.name, caminho, tamanho: f.size, tipo_mime: f.type || null,
         });
         if (error) {
           await supabase.storage.from("anexos").remove([caminho]);
           throw new Error(error.message);
         }
-        if (destino.processo_id) await registrarAnexo(destino.processo_id, f.name);
+        if (destino.processo_id) await registrarAnexo(destino.processo_id, f.name, !!destino.visivel_cliente);
       }
       startTransition(() => router.refresh());
     } catch (e) {
@@ -160,12 +166,21 @@ function Grupo({ g, autores }: { g: GrupoAnexos; autores: Record<string, string>
             <li key={a.id} className="flex items-center gap-2.5 px-3 py-1.5">
               <FileText size={15} className="shrink-0 text-subtle" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] text-ink" title={a.nome}>{a.nome}</p>
+                <p className="truncate text-[13px] text-ink" title={a.nome}>{a.nome}{a.visivel_cliente && <span className="chip ml-2 bg-ok-soft text-ok-ink">no portal</span>}</p>
                 <p className="text-[11px] text-subtle">
                   {tamanhoTexto(a.tamanho)}{a.autor && autores[a.autor] ? ` · ${autores[a.autor]}` : ""} · {new Date(a.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                 </p>
               </div>
               <Baixar id={a.id} />
+              {g.compartilhar && (
+                <form action={compartilharAnexo}>
+                  <input type="hidden" name="id" value={a.id} /><input type="hidden" name="visivel" value={a.visivel_cliente ? "0" : "1"} />
+                  <SubmitButton className={`rounded p-1.5 ${a.visivel_cliente ? "text-ok-ink hover:bg-sunken" : "text-subtle hover:bg-sunken hover:text-ink"}`} pendente="…"
+                    confirmar={a.visivel_cliente ? `Tirar "${a.nome}" do portal do cliente?` : `Liberar "${a.nome}" para o cliente ver e baixar no portal?`}>
+                    {a.visivel_cliente ? <EyeOff size={15} aria-label="Tirar do portal do cliente" /> : <Eye size={15} aria-label="Liberar no portal do cliente" />}
+                  </SubmitButton>
+                </form>
+              )}
               <form action={excluirAnexo}>
                 <input type="hidden" name="id" value={a.id} />
                 <SubmitButton className="rounded p-1.5 text-subtle hover:bg-bad-soft hover:text-bad-ink" pendente="…" confirmar={`Excluir o arquivo "${a.nome}"?`}>
@@ -176,7 +191,7 @@ function Grupo({ g, autores }: { g: GrupoAnexos; autores: Record<string, string>
           ))}
         </ul>
       ) : g.destino ? (
-        <p className="border-t border-dashed border-line px-3 py-2.5 text-xs text-subtle">Nenhum arquivo. Clique em Anexar ou arraste arquivos para cá.</p>
+        <p className="border-t border-dashed border-line px-3 py-2.5 text-xs text-subtle">{g.vazio ?? "Nenhum arquivo. Clique em Anexar ou arraste arquivos para cá."}</p>
       ) : null}
     </section>
   );

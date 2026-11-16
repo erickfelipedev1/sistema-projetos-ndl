@@ -453,8 +453,125 @@ export async function excluirAnexo(fd: FormData) {
   revalidatePath("/", "layout");
 }
 
-export async function registrarAnexo(processoId: string, nome: string) {
-  await registrar(processoId, "anexo", `Arquivo anexado: ${nome}`);
+// liberar / tirar um arquivo do portal do cliente
+export async function compartilharAnexo(fd: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("compartilhar_anexo", { p_anexo: txt(fd, "id"), p_visivel: txt(fd, "visivel") === "1" });
+  if (error) falhou(error.message);
+  revalidatePath("/", "layout");
+}
+
+// portal: link temporário de um documento liberado (o banco confere se o processo é do cliente)
+export async function linkDocumentoPortal(id: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("portal_documento", { p_anexo: id });
+  const doc = (data as { caminho: string; nome: string }[] | null)?.[0];
+  if (!doc) return null;
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const { data: url } = await createAdminClient().storage.from("anexos").createSignedUrl(doc.caminho, 120, { download: doc.nome });
+  return url?.signedUrl ?? null;
+}
+
+// Fornecedores do projeto (aba Fornecedores do processo)
+export async function salvarFornecedorProcesso(fd: FormData) {
+  const supabase = await createClient();
+  const id = txt(fd, "id");
+  const processoId = txt(fd, "processo_id");
+  let fornecedorId = txt(fd, "fornecedor_id") || null;
+  const dados = {
+    fabrica: txt(fd, "fabrica"),
+    contato_nome: txt(fd, "contato_nome") || null,
+    telefone: txt(fd, "telefone") || null,
+    email: txt(fd, "email") || null,
+    site: txt(fd, "site") || null,
+    negociacao: txt(fd, "negociacao") || null,
+    escolhido: fd.get("escolhido") === "on",
+    condicoes: txt(fd, "condicoes") || null,
+  };
+  const { data: antes } = id
+    ? await supabase.from("processo_fornecedores").select("escolhido,fornecedor_id").eq("id", id).eq("processo_id", processoId).maybeSingle()
+    : { data: null };
+  if (id && !antes) falhou("Fornecedor não encontrado neste processo");
+  // escolhido do cadastro geral: completa o que não foi preenchido (só ao adicionar ou ao trocar o vínculo)
+  if (fornecedorId && (!id || antes?.fornecedor_id !== fornecedorId)) {
+    const { data: c } = await supabase.from("fornecedores").select("nome,contato,telefone,email,site").eq("id", fornecedorId).maybeSingle();
+    if (c) {
+      dados.fabrica ||= c.nome;
+      dados.contato_nome ??= c.contato; dados.telefone ??= c.telefone; dados.email ??= c.email; dados.site ??= c.site;
+    }
+  }
+  if (!dados.fabrica) falhou("Informe o nome da fábrica");
+  // novo no cadastro geral de Fornecedores
+  if (!fornecedorId && fd.get("salvar_cadastro") === "on") {
+    const { data: novo, error } = await supabase.from("fornecedores")
+      .insert({ nome: dados.fabrica, contato: dados.contato_nome, telefone: dados.telefone, email: dados.email, site: dados.site })
+      .select("id").single();
+    if (error) falhou(error.message);
+    fornecedorId = novo.id;
+  }
+  const { error } = id
+    ? await supabase.from("processo_fornecedores").update({ ...dados, fornecedor_id: fornecedorId, updated_at: new Date().toISOString() }).eq("id", id).eq("processo_id", processoId)
+    : await supabase.from("processo_fornecedores").insert({ ...dados, fornecedor_id: fornecedorId, processo_id: processoId });
+  if (error) falhou(error.message);
+  if (!id) await registrar(processoId, "fornecedor", `Fornecedor adicionado: ${dados.fabrica}`);
+  if (dados.escolhido && !antes?.escolhido) await registrar(processoId, "fornecedor", `Fornecedor escolhido pelo cliente: ${dados.fabrica}`);
+  revalidatePath(`/processos/${processoId}`);
+}
+
+export async function excluirFornecedorProcesso(fd: FormData) {
+  const supabase = await createClient();
+  const processoId = txt(fd, "processo_id");
+  const id = txt(fd, "id");
+  const { data: f } = await supabase.from("processo_fornecedores").select("fabrica").eq("id", id).eq("processo_id", processoId).maybeSingle();
+  if (!f) falhou("Fornecedor não encontrado neste processo");
+  // os arquivos dele continuam na aba Documentos, mas saem do portal do cliente
+  const { data: liberados } = await supabase.from("anexos").select("id").eq("processo_fornecedor_id", id).eq("visivel_cliente", true);
+  for (const a of liberados ?? []) {
+    const { error: e } = await supabase.rpc("compartilhar_anexo", { p_anexo: a.id, p_visivel: false });
+    if (e) falhou(e.message);
+  }
+  const { error } = await supabase.from("processo_fornecedores").delete().eq("id", id).eq("processo_id", processoId);
+  if (error) falhou(error.message);
+  await registrar(processoId, "fornecedor", `Fornecedor removido: ${f.fabrica}`);
+  revalidatePath(`/processos/${processoId}`);
+}
+
+// Habilitação de Radar (cadastro do cliente)
+export async function salvarRadar(fd: FormData) {
+  const supabase = await createClient();
+  const clienteId = txt(fd, "cliente_id");
+  const data = (k: string) => txt(fd, k) || null;
+  const limite = txt(fd, "limite_usd").replace(/[^\d,.-]/g, "");
+  // aceita "150.000", "150000" e "150.000,50"
+  const limiteNum = limite ? Number(limite.includes(",") ? limite.replace(/\./g, "").replace(",", ".") : limite.replace(/\.(?=\d{3}(\D|$))/g, "")) : null;
+  if (limiteNum != null && !Number.isFinite(limiteNum)) falhou("Limite inválido");
+  const dados = {
+    cliente_id: clienteId,
+    status: txt(fd, "status") || "documentos",
+    doc_identidade: fd.get("doc_identidade") === "on",
+    doc_contrato_social: fd.get("doc_contrato_social") === "on",
+    doc_ecpf: fd.get("doc_ecpf") === "on",
+    modalidade: data("modalidade"),
+    limite_usd: limiteNum,
+    limite_periodo: data("limite_periodo"),
+    deferido_em: data("deferido_em"),
+    validade_ate: data("validade_ate"),
+    dte_ecac: fd.get("dte_ecac") === "on",
+    devolutiva_em: data("devolutiva_em"),
+    procuracao_assinada: fd.get("procuracao_assinada") === "on",
+    procuracao_firma: fd.get("procuracao_firma") === "on",
+    procuracao_em: data("procuracao_em"),
+    historico: data("historico"),
+    updated_at: new Date().toISOString(),
+  };
+  const { data: eu } = await supabase.auth.getUser();
+  const { error } = await supabase.from("cliente_radar").upsert({ ...dados, atualizado_por: eu.user?.id ?? null }, { onConflict: "cliente_id" });
+  if (error) falhou(error.message);
+  revalidatePath(`/clientes/${clienteId}`);
+}
+
+export async function registrarAnexo(processoId: string, nome: string, noPortal = false) {
+  await registrar(processoId, "anexo", noPortal ? `Anexado e liberado no portal do cliente: ${nome}` : `Arquivo anexado: ${nome}`);
   revalidatePath(`/processos/${processoId}`);
 }
 
