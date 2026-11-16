@@ -18,8 +18,8 @@ const VARIAVEIS = [
   { chave: "{contato}", desc: "Pessoa de contato" },
   { chave: "{plano}", desc: "Flex, Full ou Premium" },
   { chave: "{meu_nome}", desc: "Seu nome (responsável)" },
-  { chave: "{x_ntl}", desc: "“X” se for gerenciamento NTL" },
-  { chave: "{x_proprio}", desc: "“X” se for próprio NLG" },
+  { chave: "{x_ntl}", desc: "“X” se for gerenciamento terceirizado" },
+  { chave: "{x_proprio}", desc: "“X” se for gerenciamento próprio" },
 ];
 
 export default async function Emails({ searchParams }: { searchParams: Promise<{ cat?: string; modelo?: string; processo?: string }> }) {
@@ -89,7 +89,7 @@ export default async function Emails({ searchParams }: { searchParams: Promise<{
               <div className="card-header flex-wrap">
                 <div className="min-w-0">
                   <h2 className="text-[15px] font-semibold text-ink">{sel.titulo}</h2>
-                  <p className="card-sub">{sel.etapa_id ? `${etapaDe.get(sel.etapa_id)?.area} · ${nomeCurto(etapaDe.get(sel.etapa_id)?.nome ?? "")}` : "Geral"}{sel.condicao ? ` · só ${sel.condicao === "ntl" ? "gerenciamento NTL" : "próprio NLG"}` : ""}</p>
+                  <p className="card-sub">{sel.etapa_id ? `${etapaDe.get(sel.etapa_id)?.area} · ${nomeCurto(etapaDe.get(sel.etapa_id)?.nome ?? "")}` : "Geral"}{sel.condicao ? ` · só ${sel.condicao === "ntl" ? "gerenciamento terceirizado" : "gerenciamento próprio"}` : ""}</p>
                 </div>
                 <div className="w-full sm:w-64">
                   <Suspense><ParamSelect nome="processo" valor={sp.processo ?? ""} vazio="Preencher com um processo…"

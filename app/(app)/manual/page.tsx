@@ -88,6 +88,8 @@ export default async function Manual({ searchParams }: { searchParams: Promise<{
                   <h2 className="card-title">Regras do fluxo</h2>
                   <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-muted">
                     <li>Ao concluir uma etapa, a próxima começa automaticamente com prazo e responsável.</li>
+                    <li>Distribuição: a Ana Clara escolhe UMA pessoa para conduzir o projeto (Gabriella ou Giovanna no sourcing, Alycia na estimativa de custos). Ao direcionar, o Projeto começa com essa pessoa.</li>
+                    <li>Projeto que não virou ordem: use “Encerrar sem ordem” com o resultado (deu preço ou não) e o motivo. Ele vai para Concluídos, onde dá para filtrar por resultado e motivo.</li>
                     <li>Prazos em dias úteis: fins de semana e feriados cadastrados não contam.</li>
                     <li>Projeto: Flex 10 · Full 15 · Premium 25 dias. Cotação: 1 dia, 2 com certificação.</li>
                     <li>A Viagem começa com 30 dias e pode ser ajustada pela data de chegada (ETA).</li>
@@ -97,8 +99,8 @@ export default async function Manual({ searchParams }: { searchParams: Promise<{
                 <section className="card px-4 py-4">
                   <h2 className="card-title">Tipo de ordem</h2>
                   <p className="mt-2 text-[13px] text-muted">
-                    Depois do fechamento, cada processo é marcado como <strong className="text-ink">Gerenciamento NTL</strong> ou <strong className="text-ink">Próprio NLG</strong>.
-                    O checklist das etapas CX, Booking, Viagem e Transporte muda conforme essa escolha — os itens exclusivos aparecem com a etiqueta do tipo.
+                    Depois do fechamento, cada processo é marcado como <strong className="text-ink">Gerenciamento próprio</strong> (a Jornada 4S gerencia a ordem e a NLG presta o serviço) ou <strong className="text-ink">Gerenciamento terceirizado</strong>.
+                    O checklist da etapa CX · Ordem muda conforme essa escolha — os itens exclusivos aparecem com a etiqueta do tipo.
                   </p>
                 </section>
               </div>
@@ -148,7 +150,7 @@ export default async function Manual({ searchParams }: { searchParams: Promise<{
                             <div className="min-w-0">
                               <p className="text-[13px] font-medium text-ink">
                                 {limparPasso(p.titulo)}
-                                {p.condicao && <span className="chip ml-2 bg-sunken text-muted">{p.condicao === "ntl" ? "Gerenciamento NTL" : "Próprio NLG"}</span>}
+                                {p.condicao && <span className="chip ml-2 bg-sunken text-muted">{p.condicao === "ntl" ? "Gerenciamento terceirizado" : "Gerenciamento próprio"}</span>}
                               </p>
                               {p.descricao && <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-muted">{p.descricao}</p>}
                             </div>

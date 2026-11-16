@@ -516,16 +516,33 @@ export async function recotarProcesso(fd: FormData) {
   revalidatePath("/", "layout");
 }
 
-// Sourcing: a coordenação direciona o projeto para quem vai conduzi-lo
+// Distribuição: a coordenação escolhe UMA pessoa para conduzir o projeto
+// (na etapa Distribuição, isso conclui a etapa e abre o Projeto com ela)
 export async function direcionarProjeto(fd: FormData) {
   const supabase = await createClient();
+  const v = txt(fd, "voltar");
+  // só caminhos internos fixos (evita redirect para fora)
+  const voltar = v === "/distribuicao" || /^\/processos\/[0-9a-f-]{36}$/.test(v) ? v : "/distribuicao";
   const { error } = await supabase.rpc("direcionar_projeto", {
     p_processo_id: txt(fd, "processo_id"), p_responsavel: txt(fd, "responsavel"),
   });
   // o erro volta para a própria tela (em produção, erro lançado numa action vira mensagem genérica)
-  if (error) redirect(`/sourcing?erro=${encodeURIComponent(error.message)}`);
+  if (error) redirect(`${voltar}${voltar.includes("?") ? "&" : "?"}erro=${encodeURIComponent(error.message)}`);
   revalidatePath("/", "layout");
-  redirect("/sourcing");
+  redirect(voltar);
+}
+
+// Encerrar sem ordem: o projeto termina sem virar ordem (resultado + motivo para os filtros dos Concluídos)
+export async function encerrarSemOrdem(fd: FormData) {
+  const supabase = await createClient();
+  const id = txt(fd, "processo_id");
+  const motivo = txt(fd, "motivo") === "Outro" ? `Outro: ${txt(fd, "outro")}`.replace(/:\s*$/, "") : txt(fd, "motivo");
+  const { error } = await supabase.rpc("encerrar_sem_ordem", {
+    p_processo_id: id, p_resultado: txt(fd, "resultado"), p_motivo: motivo, p_obs: txt(fd, "obs") || null,
+  });
+  if (error) redirect(`/processos/${id}?erro=${encodeURIComponent(error.message)}`);
+  revalidatePath("/", "layout");
+  redirect(`/processos/${id}`);
 }
 
 // Segmentos do sourcing: nome e fornecedores (um por linha)

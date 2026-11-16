@@ -214,8 +214,8 @@ export default function NovoProcessoWizard({ etapas, itens, feriados, hoje, clie
               <fieldset>
                 <legend className="label">Tipo de ordem</legend>
                 <div className="grid gap-2 sm:grid-cols-3">
-                  <Opcao nome="ger_r" valor="ntl" atual={ger} onChange={setGer} titulo="Gerenciamento NTL" />
-                  <Opcao nome="ger_r" valor="proprio" atual={ger} onChange={setGer} titulo="Próprio NLG" />
+                  <Opcao nome="ger_r" valor="proprio" atual={ger} onChange={setGer} titulo="Gerenciamento próprio" />
+                  <Opcao nome="ger_r" valor="ntl" atual={ger} onChange={setGer} titulo="Gerenciamento terceirizado" />
                   <Opcao nome="ger_r" valor="" atual={ger} onChange={setGer} titulo="Definir depois" sub="no fechamento" />
                 </div>
               </fieldset>

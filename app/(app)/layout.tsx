@@ -19,9 +19,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     supabase.from("v_etapas_atuais").select("atrasada").contains("responsaveis", [user.id]),
     supabase.rpc("chat_conversas"),
     supabase.from("mensagens").select("id", { count: "exact", head: true }).eq("demanda_para", user.id).eq("demanda_status", "aberta"),
-    supabase.from("v_etapas_atuais").select("responsaveis").eq("nome", "Projeto (Flex / Premium / Full)"),
+    supabase.from("v_etapas_atuais").select("nome,responsaveis").in("nome", ["Distribuição", "Projeto (Flex / Premium / Full)"]),
   ]);
-  const aguardandoSourcing = ((projetosAtuais ?? []) as { responsaveis: string[] }[]).filter((p) => p.responsaveis.length !== 1).length;
+  const aguardandoSourcing = ((projetosAtuais ?? []) as { nome: string; responsaveis: string[] }[]).filter((p) => p.nome === "Distribuição" || p.responsaveis.length !== 1).length;
   if (perfil?.trocar_senha) redirect("/trocar-senha");
   if (perfil?.tipo === "cliente") redirect("/portal");
   const naoLidas = ((conversas ?? []) as { nao_lidas: number }[]).reduce((s, c) => s + (c.nao_lidas ?? 0), 0);

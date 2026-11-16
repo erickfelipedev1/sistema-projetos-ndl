@@ -155,7 +155,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
                   ["Dias úteis", "Fins de semana e os feriados cadastrados em Operação › Feriados não contam para prazos."],
                   ["Prazo por plano", "Etapas com prazo Flex/Full/Premium usam o prazo do plano do processo; com certificação usam o prazo específico."],
                   ["Recalcular prazos", "Mudar plano ou certificação de um processo recalcula as etapas ainda não concluídas."],
-                  ["Tipo de ordem", "Gerenciamento NTL ou Próprio NLG troca os itens do checklist das etapas pós-fechamento."],
+                  ["Tipo de ordem", "Gerenciamento próprio ou terceirizado troca os itens do checklist das etapas pós-fechamento."],
                   ["Etapa final", "Ao concluir a última etapa com prazo, o processo passa para Concluídos."],
                   ["Vínculo de pessoas", "Ao criar uma conta, a pessoa é vinculada às etapas que têm o primeiro nome dela como responsável."],
                 ].map(([t, d]) => (
@@ -300,7 +300,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
                                 <input name="ordem" type="number" defaultValue={i?.ordem ?? (lista.at(-1)?.ordem ?? 0) + 10} className="input h-8" required aria-label="Ordem" />
                                 <input name="titulo" defaultValue={i?.titulo ?? ""} placeholder="Novo item" className="input h-8" required aria-label="Título" />
                                 <select name="condicao" defaultValue={i?.condicao ?? ""} className="input h-8" aria-label="Vale para">
-                                  <option value="">Todas as ordens</option><option value="ntl">Só gerenciamento NTL</option><option value="proprio">Só próprio NLG</option>
+                                  <option value="">Todas as ordens</option><option value="proprio">Só gerenciamento próprio</option><option value="ntl">Só gerenciamento terceirizado</option>
                                 </select>
                                 <textarea name="descricao" defaultValue={i?.descricao ?? ""} rows={2} placeholder="Instruções (opcional)" className="textarea md:col-span-3" />
                                 <details className="rounded-md border border-line md:col-span-3" open={!!i?.responsaveis?.length}>

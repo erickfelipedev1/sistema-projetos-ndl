@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Columns3, List } from "lucide-react";
 import { base, duracaoUteis } from "@/lib/dados";
 import type { EtapaAtual, Processo } from "@/lib/types";
-import { dataBR } from "@/lib/format";
+import { dataBR, GERENCIAMENTO_LABEL, MOTIVOS_ENCERRAMENTO, RESULTADO_LABEL } from "@/lib/format";
 import { motivo, nomeCurto, prazoTexto, statusPrazo, relativo } from "@/lib/status";
 import PageHeader from "@/components/ui/PageHeader";
 import Tabs, { Segmented } from "@/components/ui/Tabs";
@@ -99,21 +99,54 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
     let query = supabase.from("processos").select("*").eq("status", visao).order(visao === "concluido" ? "concluido_em" : "created_at", { ascending: false }).limit(300);
     if (sp.plano) query = query.eq("plano", sp.plano);
     const { data } = await query;
-    const lista = ((data ?? []) as Processo[]).filter((p) => !q || `${p.cliente} ${p.contato ?? ""} ${p.codigo}`.toLowerCase().includes(q));
+    const doPlano = ((data ?? []) as Processo[]).filter((p) => !q || `${p.cliente} ${p.contato ?? ""} ${p.codigo}`.toLowerCase().includes(q));
+    // concluídos: resultado (sem resultado = virou ordem) e motivo do encerramento sem ordem
+    const resultadoDe = (p: Processo) => p.resultado ?? "ordem";
+    const motivoBase = (m: string | null | undefined) => (m ?? "").startsWith("Outro") ? "Outro" : m ?? "";
+    const conc = visao === "concluido";
+    const lista = doPlano.filter((p) => !conc || ((!sp.resultado || resultadoDe(p) === sp.resultado) && (!sp.motivo || motivoBase(p.motivo_encerramento) === sp.motivo)));
+    const contRes = (r: string) => doPlano.filter((p) => resultadoDe(p) === r).length;
+    const semOrdem = doPlano.filter((p) => p.resultado && (!sp.resultado || p.resultado === sp.resultado));
+    const motivosUsados = MOTIVOS_ENCERRAMENTO.map((m) => ({ m, n: semOrdem.filter((p) => motivoBase(p.motivo_encerramento) === m).length })).filter((x) => x.n > 0);
+    const filtrosConc = conc ? [
+      { nome: "resultado", rotulo: "Resultado", valor: sp.resultado ?? "", opcoes: Object.entries(RESULTADO_LABEL).map(([valor, rotulo]) => ({ valor, rotulo: `${rotulo} (${contRes(valor)})` })) },
+      { nome: "motivo", rotulo: "Motivo", valor: sp.motivo ?? "", opcoes: MOTIVOS_ENCERRAMENTO.map((m) => ({ valor: m, rotulo: m })) },
+    ] : [];
     return (
       <div>
         {header}
         {abasPlano(false)}
         {abas}
         <div className="mt-4 mb-3">
-          <FilterBar busca={sp.q} ocultos={{ visao, ...(plano ? { plano } : {}) }} limparHref={`/processos?visao=${visao}${plano ? `&plano=${plano}` : ""}`} filtros={[]} />
+          <FilterBar busca={sp.q} ocultos={{ visao, ...(plano ? { plano } : {}) }} limparHref={`/processos?visao=${visao}${plano ? `&plano=${plano}` : ""}`} filtros={filtrosConc} />
         </div>
+        {conc && doPlano.length > 0 && (
+          <section className="mb-3 grid gap-3 md:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,2fr)]" aria-label="Diagnóstico dos concluídos">
+            {Object.entries(RESULTADO_LABEL).map(([r, rotulo]) => (
+              <Link key={r} prefetch={false} href={qs({ resultado: sp.resultado === r ? undefined : r, motivo: undefined })}
+                className={`card px-4 py-3 transition-colors hover:border-primary ${sp.resultado === r ? "border-primary bg-primary-soft" : ""}`}>
+                <p className="text-[11px] font-medium text-muted">{rotulo}</p>
+                <p className="num mt-1 text-2xl font-semibold text-ink">{contRes(r)}<span className="ml-1.5 text-xs font-normal text-muted">{Math.round((contRes(r) / doPlano.length) * 100)}%</span></p>
+              </Link>
+            ))}
+            <div className="card px-4 py-3">
+              <p className="text-[11px] font-medium text-muted">Por que não virou ordem</p>
+              {motivosUsados.length ? (
+                <ul className="mt-1.5 space-y-1 text-[12.5px]">
+                  {motivosUsados.sort((a, b) => b.n - a.n).map(({ m, n }) => (
+                    <li key={m}><Link prefetch={false} href={qs({ motivo: sp.motivo === m ? undefined : m })} className={`flex justify-between gap-2 hover:text-primary-2 ${sp.motivo === m ? "font-semibold text-primary-2" : "text-ink"}`}><span className="truncate">{m}</span><span className="num">{n}</span></Link></li>
+                  ))}
+                </ul>
+              ) : <p className="mt-1.5 text-xs text-muted">Nenhum projeto encerrado sem ordem.</p>}
+            </div>
+          </section>
+        )}
         <div className="card overflow-hidden">
           {lista.length ? (
             <div className="scroll-x">
               <table className="table-base min-w-[860px]">
                 <thead><tr><th>Código</th><th>Empresa</th><th>Contato</th><th>Plano</th><th>Tipo de ordem</th><th>Aberto em</th>
-                  {visao === "concluido" && <><th>Chegou em</th><th className="text-right">Duração</th></>}</tr></thead>
+                  {visao === "concluido" && <><th>Concluído em</th><th>Resultado</th><th className="text-right">Duração</th></>}</tr></thead>
                 <tbody>
                   {lista.map((p) => (
                     <tr key={p.id}>
@@ -121,10 +154,14 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
                       <td><Link prefetch={false} href={`/processos/${p.id}`} className="font-medium text-ink hover:text-primary-2">{p.cliente}</Link></td>
                       <td className="text-muted">{p.contato ?? "—"}</td>
                       <td><PlanoTag plano={p.plano} /></td>
-                      <td className="text-muted">{p.gerenciamento === "ntl" ? "Gerenciamento NTL" : p.gerenciamento === "proprio" ? "Próprio NLG" : "—"}</td>
+                      <td className="text-muted">{p.gerenciamento ? GERENCIAMENTO_LABEL[p.gerenciamento] : "—"}</td>
                       <td className="num">{dataBR(p.created_at)}</td>
                       {visao === "concluido" && <>
                         <td className="num">{dataBR(p.concluido_em)}</td>
+                        <td className="max-w-[260px]">
+                          <span className={`chip ${p.resultado ? "bg-warn-soft text-warn-ink" : "bg-ok-soft text-ok-ink"}`}>{RESULTADO_LABEL[resultadoDe(p)]}</span>
+                          {p.motivo_encerramento && <div className="mt-0.5 truncate text-[11px] text-muted" title={p.motivo_encerramento}>{p.motivo_encerramento}</div>}
+                        </td>
                         <td className="num text-right">{duracaoUteis(p.created_at, p.concluido_em, feriados) ?? "—"} d.u.</td>
                       </>}
                     </tr>

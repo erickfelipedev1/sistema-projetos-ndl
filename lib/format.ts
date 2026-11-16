@@ -63,11 +63,29 @@ export function prazoEtapaTexto(e: PrazosEtapa) {
   return e.prazo_com_certificacao !== null ? `${base} (${e.prazo_com_certificacao} c/ certificação)` : base;
 }
 
+// Tipo de ordem — sem nome de empresa terceira (o parceiro pode mudar).
+// "proprio": a ordem é gerenciada pela Jornada 4S; a NLG presta o serviço aos clientes da Jornada.
 export const GERENCIAMENTO_LABEL: Record<string, string> = {
-  ntl: "Com gerenciamento (NTL)",
-  proprio: "Sem gerenciamento (próprio NLG)",
+  proprio: "Gerenciamento próprio",
+  ntl: "Gerenciamento terceirizado",
 };
-export const GERENCIAMENTO_CURTO: Record<string, string> = { ntl: "NTL", proprio: "Próprio" };
+export const GERENCIAMENTO_CURTO: Record<string, string> = { proprio: "Próprio", ntl: "Terceirizado" };
+
+// Encerrar sem ordem: resultado e motivos (para os filtros dos Concluídos)
+export const RESULTADO_LABEL: Record<string, string> = {
+  ordem: "Virou ordem",
+  deu_preco: "Deu preço, não virou ordem",
+  nao_deu_preco: "Não deu preço",
+};
+export const MOTIVOS_ENCERRAMENTO = [
+  "Preço acima do esperado pelo cliente",
+  "Cliente desistiu da importação",
+  "Cliente parou de responder",
+  "Sem fornecedor viável",
+  "Prazo de produção ou entrega não atende",
+  "Quantidade mínima (MOQ) não atende",
+  "Outro",
+];
 
 // preenche as variáveis dos modelos de e-mail
 export function preencherModelo(

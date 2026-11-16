@@ -56,9 +56,9 @@ export default function Sidebar({ nome, cargo, contagens, sair }: { nome: string
             <Sub href="/processos?visao=cancelado" rotulo="Cancelados" ativo={path === "/processos" && visao === "cancelado"} />
           </div>
         )}
-        <Item href="/sourcing" icone={Route} rotulo="Sourcing" ativo={path.startsWith("/sourcing")}
+        <Item href="/distribuicao" icone={Route} rotulo="Distribuição" ativo={path.startsWith("/distribuicao")}
           extra={contagens.sourcing > 0 ? (
-            <span title="Projetos aguardando direcionamento" className="num hidden rounded bg-warn px-1.5 text-[11px] font-semibold text-white lg:inline">{contagens.sourcing}</span>
+            <span title="Projetos aguardando distribuição" className="num hidden rounded bg-warn px-1.5 text-[11px] font-semibold text-white lg:inline">{contagens.sourcing}</span>
           ) : null} />
         <Item href="/minhas" icone={ListChecks} rotulo="Minhas tarefas" ativo={path.startsWith("/minhas")}
           extra={contagens.minhas > 0 ? (

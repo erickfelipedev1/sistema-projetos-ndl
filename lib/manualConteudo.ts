@@ -36,7 +36,7 @@ export const FORMULARIOS: { titulo: string; onde?: string; campos: string[] }[] 
     ],
   },
   {
-    titulo: "Formulário de fechamento (NTL)",
+    titulo: "Formulário de fechamento (trading parceira)",
     onde: "Drive › Documentos › Formulário de Fechamento",
     campos: [
       "Tipo de serviço (pesquisa NLG ou fornecedor do cliente) · Data",

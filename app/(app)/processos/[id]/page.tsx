@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowRight, CalendarClock, ChevronRight, CircleCheck, RotateCcw, XCircle, Pencil, RefreshCcw } from "lucide-react";
 import { base, previsaoChegada, duracaoUteis } from "@/lib/dados";
 import type { Anexo, ChecklistItem, EmailModelo, Evento, Processo, ProcessoEtapa, Segmento } from "@/lib/types";
-import { dataBR, dataHoraBR, nomeExibicao, nomesResponsaveis, preencherModelo, GERENCIAMENTO_LABEL } from "@/lib/format";
+import { dataBR, dataHoraBR, nomeExibicao, nomesResponsaveis, preencherModelo, GERENCIAMENTO_LABEL, MOTIVOS_ENCERRAMENTO, RESULTADO_LABEL } from "@/lib/format";
+import { normaliza } from "@/lib/login";
 import { diasUteisEntre, paraDataBR } from "@/lib/diasUteis";
 import { du, limparPasso, nomeCurto, prazoTexto, statusPrazo } from "@/lib/status";
 import Tabs from "@/components/ui/Tabs";
@@ -24,9 +25,9 @@ import CobrancaForm from "@/components/processos/CobrancaForm";
 import { Hourglass } from "lucide-react";
 import Anexos, { AnexarBotao, type GrupoAnexos } from "@/components/anexos/Anexos";
 import { podeEditarEtapa, podeMarcarItem, responsaveisDoItem } from "@/lib/permissoes";
-import { Lock, Pause, Play, RefreshCcw as Recotar } from "lucide-react";
+import { CircleStop, Lock, Pause, Play, RefreshCcw as Recotar } from "lucide-react";
 import {
-  alterarPrazo, alterarResponsaveis, avancarProcesso, cancelarProcesso, comentar, definirSituacao, editarProcesso, pausarProcesso, recotarProcesso, retornarProcesso, enviarParaNLG, salvarSegmento,
+  alterarPrazo, alterarResponsaveis, avancarProcesso, cancelarProcesso, comentar, definirSituacao, direcionarProjeto, editarProcesso, encerrarSemOrdem, pausarProcesso, recotarProcesso, retornarProcesso, enviarParaNLG, salvarSegmento,
 } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
@@ -174,6 +175,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                   <Recotar size={11} /> Recotação {p.recotacoes} · {dataBR(p.ultima_recotacao_em)}
                 </span>
               )}
+              {p.status === "concluido" && p.resultado && <span className="chip bg-warn-soft text-warn-ink" title={p.motivo_encerramento ?? undefined}>Encerrado sem ordem · {RESULTADO_LABEL[p.resultado]}{p.motivo_encerramento ? ` · ${p.motivo_encerramento}` : ""}</span>}
               {p.enviado_nlg_em && <span className="chip bg-ok-soft text-ok-ink" title="Este processo seguiu para o sistema da NLG">Enviado para a NLG em {dataBR(p.enviado_nlg_em)}{p.enviado_nlg_codigo ? ` · ${p.enviado_nlg_codigo}` : ""}</span>}
               {p.contato && <span className="text-xs text-muted">· Contato: {p.contato}</span>}
             </div>
@@ -197,7 +199,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                 </form>
               </Modal>
             )}
-            {p.status === "concluido" && !p.enviado_nlg_em && !!eu && (
+            {p.status === "concluido" && !p.resultado && !p.enviado_nlg_em && !!eu && (
               <Modal rotulo="Enviar para a NLG" botaoClasse="btn-primary" titulo="Enviar para a NLG" descricao="A NLG abre este processo já no Booking, com cliente, plano e contato. Só envie se este processo vai seguir para importação — o envio não pode ser desfeito por aqui.">
                 <form action={enviarParaNLG} className="space-y-3">
                   <input type="hidden" name="processo_id" value={p.id} />
@@ -219,6 +221,30 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                 <input type="hidden" name="processo_id" value={p.id} /><input type="hidden" name="retomar" value="1" />
                 <SubmitButton className="btn-primary" pendente="Retomando…"><Play size={14} /> Retomar processo</SubmitButton>
               </form>
+            )}
+            {p.status === "ativo" && podeProc && (
+              <Modal rotulo={<><CircleStop size={14} /> Encerrar sem ordem</>} titulo="Encerrar sem ordem" descricao="O projeto termina aqui sem virar ordem e vai para a aba Concluídos com o resultado e o motivo, para o diagnóstico dos projetos. Um administrador pode reabrir depois.">
+                <form action={encerrarSemOrdem} className="space-y-3">
+                  <input type="hidden" name="processo_id" value={p.id} />
+                  <fieldset>
+                    <legend className="label">Resultado</legend>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-2 text-[13px] has-checked:border-primary has-checked:bg-primary-soft"><input type="radio" name="resultado" value="deu_preco" required /> Deu preço</label>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-2 text-[13px] has-checked:border-primary has-checked:bg-primary-soft"><input type="radio" name="resultado" value="nao_deu_preco" /> Não deu preço</label>
+                    </div>
+                  </fieldset>
+                  <div>
+                    <label className="label" htmlFor="motivo-enc">Motivo</label>
+                    <select id="motivo-enc" name="motivo" required defaultValue="" className="input">
+                      <option value="" disabled>Escolher…</option>
+                      {MOTIVOS_ENCERRAMENTO.map((m) => <option key={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div><label className="label" htmlFor="outro-enc">Se for &quot;Outro&quot;, qual?</label><input id="outro-enc" name="outro" className="input" /></div>
+                  <div><label className="label" htmlFor="obs-enc">Observação (opcional)</label><textarea id="obs-enc" name="obs" rows={2} className="textarea" /></div>
+                  <div className="flex justify-end"><SubmitButton>Encerrar sem ordem</SubmitButton></div>
+                </form>
+              </Modal>
             )}
             {p.status === "ativo" && podeProc && (
               <Modal rotulo={<><XCircle size={14} /> Cancelar processo</>} botaoClasse="btn-danger" titulo="Cancelar processo" descricao="O processo sai do kanban e vai para a aba Cancelados. Dá para reativar depois.">
@@ -339,8 +365,22 @@ export default async function DetalheProcesso({ params, searchParams }: { params
 
               {/* ações */}
               <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+                {podeAtual && atual.nome === "Distribuição" && (
+                  <form action={direcionarProjeto} className="flex w-full flex-wrap items-center gap-2 border-b border-line pb-3">
+                    <input type="hidden" name="processo_id" value={p.id} />
+                    <input type="hidden" name="voltar" value={`/processos/${p.id}`} />
+                    <label htmlFor="conduz" className="text-xs font-medium text-muted">Quem conduz o projeto?</label>
+                    <select id="conduz" name="responsavel" required defaultValue="" className="input h-8 w-auto! min-w-[180px]">
+                      <option value="" disabled>Escolher…</option>
+                      {(perfis.some((pf) => pf.cargo && normaliza(pf.cargo) === "projetos") ? perfis.filter((pf) => pf.cargo && normaliza(pf.cargo) === "projetos") : perfis)
+                        .map((pf) => <option key={pf.id} value={pf.id}>{nomeExibicao(pf.nome ?? pf.email)}</option>)}
+                    </select>
+                    <SubmitButton className="btn-primary h-8 text-xs" pendente="Direcionando…">Direcionar e iniciar o Projeto <ArrowRight size={13} /></SubmitButton>
+                    <p className="w-full text-[11px] text-subtle">Gabriella ou Giovanna: sourcing (Premium, Full ou Flex) · Alycia: estimativa de custos.</p>
+                  </form>
+                )}
                 {podeAtual && (<>
-                <Modal rotulo={<><CircleCheck size={15} /> Concluir etapa e avançar</>} botaoClasse="btn-primary" titulo={`Concluir "${nomeCurto(atual.nome)}"`}
+                {atual.nome !== "Distribuição" && <Modal rotulo={<><CircleCheck size={15} /> Concluir etapa e avançar</>} botaoClasse="btn-primary" titulo={`Concluir "${nomeCurto(atual.nome)}"`}
                   descricao={proxima ? `A próxima etapa, ${nomeCurto(proxima.nome)}, começa agora com prazo de ${proxima.prazo_dias_uteis != null ? du(proxima.prazo_dias_uteis) : "—"}.` : "O processo será finalizado."}>
                   <form action={avancarProcesso} className="space-y-3">
                     <input type="hidden" name="processo_id" value={p.id} />
@@ -350,7 +390,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                     <div><label className="label">Observação (opcional)</label><textarea name="obs" rows={3} className="textarea" placeholder="Ex.: booking confirmado, nº 12345" /></div>
                     <div className="flex justify-end"><SubmitButton>Concluir e avançar <ArrowRight size={14} /></SubmitButton></div>
                   </form>
-                </Modal>
+                </Modal>}
                 {(atual.prazo_editavel || eu?.admin) && <Modal rotulo={<><CalendarClock size={14} /> {atual.prazo_editavel ? "Definir data de chegada" : "Ajustar prazo"}</>} titulo={atual.prazo_editavel ? "Data prevista (ETA)" : "Ajustar prazo da etapa"}>
                   <form action={alterarPrazo} className="space-y-3">
                     <input type="hidden" name="processo_id" value={p.id} /><input type="hidden" name="pe_id" value={atual.id} /><input type="hidden" name="etapa_nome" value={atual.nome} />
@@ -420,7 +460,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                   ) : <EmptyState compacto titulo="Esta etapa não tem checklist" texto="Itens podem ser configurados em Configurações › Checklists." />}
                   {!p.gerenciamento && p.status === "ativo" && (
                     <p className="rounded-md bg-warn-soft px-3 py-2 text-xs text-warn-ink">
-                      Defina o tipo de ordem (NTL ou próprio NLG) na aba <Link href={tabHref("dados")} className="font-medium underline">Dados</Link> para liberar o checklist das etapas pós-fechamento.
+                      Defina o tipo de ordem (gerenciamento próprio ou terceirizado) na aba <Link href={tabHref("dados")} className="font-medium underline">Dados</Link> para liberar o checklist das etapas pós-fechamento.
                     </p>
                   )}
                   <details className="rounded-md border border-line">
@@ -547,7 +587,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                   <div>
                     <label className="label">Tipo de ordem</label>
                     <select name="gerenciamento" defaultValue={p.gerenciamento ?? ""} className="input">
-                      <option value="">Ainda não definido</option><option value="ntl">Gerenciamento NTL</option><option value="proprio">Próprio NLG</option>
+                      <option value="">Ainda não definido</option><option value="proprio">Gerenciamento próprio</option><option value="ntl">Gerenciamento terceirizado</option>
                     </select>
                   </div>
                   <div className="md:col-span-2"><label className="label">Descrição / referência</label><textarea name="descricao" defaultValue={p.descricao ?? ""} rows={3} className="textarea" /></div>

@@ -62,6 +62,7 @@ export function limparPasso(t: string) {
 const CURTOS: Record<string, string> = {
   "Apresentação / Montagem do projeto (planilha)": "Apresentação",
   "Onboarding": "Onboarding",
+  "Distribuição": "Distribuição",
   "Projeto (Flex / Premium / Full)": "Projeto",
   "Estimativa de custo": "Estimativa",
   "Apresentação da estimativa": "Apres. estimativa",
