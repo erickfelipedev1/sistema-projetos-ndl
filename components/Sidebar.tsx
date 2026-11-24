@@ -37,8 +37,8 @@ export default function Sidebar({ nome, cargo, contagens, sair }: { nome: string
   return (
     <aside className="sticky top-0 flex h-screen w-16 shrink-0 flex-col bg-[#10304f] lg:w-[228px]">
       <Link href="/" className="flex h-14 items-center gap-2.5 border-b border-white/10 px-4">
-        <Image src="/logo.png" alt="Rota 4S" width={32} height={32} className="h-8 w-8 shrink-0 object-contain lg:hidden" />
-        <Image src="/logo-rota4s-branco.png" alt="Rota 4S" width={634} height={160} priority className="hidden h-9 w-auto lg:block" />
+        <Image src="/icone-rota4s.png" alt="Rota 4S" width={32} height={32} className="h-8 w-8 shrink-0 object-contain lg:hidden" />
+        <Image src="/marca-rota4s-branco.png" alt="Rota 4S" width={862} height={160} priority className="hidden h-8 w-auto lg:block" />
       </Link>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2.5 py-3" aria-label="Principal">
