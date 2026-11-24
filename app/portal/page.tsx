@@ -26,7 +26,7 @@ export default async function Portal() {
       <header className="border-b border-white/10 bg-[#10304f]">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="NowTrace" width={28} height={28} className="h-7 w-7 shrink-0 rounded-md object-cover" />
+            <Image src="/logo.png" alt="Rota 4S" width={28} height={28} className="h-7 w-7 shrink-0 rounded-md object-cover" />
             <span className="leading-tight">
               <span className="block text-[13px] font-semibold text-white">Portal do cliente</span>
               <span className="block text-[11px] text-white/50">Grupo Now</span>
@@ -40,7 +40,7 @@ export default async function Portal() {
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">
         <PortalView dados={data as PortalDados} />
-        <p className="mt-8 text-center text-xs text-subtle">Dúvidas sobre o seu processo? Fale com o seu atendimento (CS) da NowTrace.</p>
+        <p className="mt-8 text-center text-xs text-subtle">Dúvidas sobre o seu processo? Fale com o seu atendimento (CS) da Rota 4S.</p>
       </main>
     </div>
   );

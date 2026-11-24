@@ -181,7 +181,7 @@ export default function PortalView({ dados }: { dados: PortalDados }) {
   const medias = useMemo(() => new Map(mediasArr.map((m) => [m.ordem, m.media])), [mediasArr]);
   const planos = useMemo(() => [...new Set(procs.map((p) => p.plano).filter(Boolean) as string[])].sort(), [procs]);
 
-  if (!dados) return <EmptyState titulo="Acesso sem cliente vinculado" texto="Fale com a equipe NowTrace para liberar o seu acesso." />;
+  if (!dados) return <EmptyState titulo="Acesso sem cliente vinculado" texto="Fale com a equipe Rota 4S para liberar o seu acesso." />;
 
   const nAnd = procs.filter((p) => grupoDe(p) === "andamento").length;
   const nAg = procs.filter((p) => grupoDe(p) === "aguardando").length;

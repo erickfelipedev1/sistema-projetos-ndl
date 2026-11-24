@@ -59,8 +59,8 @@ export default function LoginPage() {
     <main className="grid min-h-screen lg:grid-cols-[1fr_minmax(420px,520px)]">
       <section className="hidden flex-col justify-between bg-[#10304f] p-10 text-white lg:flex">
         <div className="flex items-center gap-2.5">
-          <Image src="/logo.png" alt="NowTrace" width={32} height={32} className="h-8 w-8 shrink-0 rounded-md object-cover" />
-          <span className="text-sm font-semibold">NowTrace</span>
+          <Image src="/logo.png" alt="Rota 4S" width={32} height={32} className="h-8 w-8 shrink-0 rounded-md object-cover" />
+          <span className="text-sm font-semibold">Rota 4S</span>
         </div>
         <div className="max-w-md">
           <h1 className="text-[28px] leading-tight font-semibold">Central de operações dos processos de importação.</h1>
