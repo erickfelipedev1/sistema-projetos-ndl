@@ -22,13 +22,13 @@ export const FORMULARIOS: { titulo: string; onde?: string; campos: string[] }[] 
     campos: [
       "Dados da empresa: nome, CNPJ, endereço com CEP",
       "Dados do cliente: nome e e-mail do responsável",
-      "Informações do projeto: prioridade da estimativa, data de início e de finalização, responsável do produto, tipo de projeto (Flex, Full, Premium)",
+      "Informações do projeto: prioridade da simulação, data de início e de finalização, responsável do produto, tipo de projeto (Flex, Full, Premium ou Simulação)",
       "Dados para a classificação: uso e finalidade, breve descrição, material de composição (obrigatório para tecido, ferro, produto químico), HS Code",
       "Foto do produto",
     ],
   },
   {
-    titulo: "Formulário de estimativa de custos",
+    titulo: "Formulário de simulação (estimativa de custos)",
     campos: [
       "PI e PL (enviar no e-mail) — o que não pode faltar: Incoterm (se EXW, endereço da fábrica), porto de saída, peso bruto e líquido, total de itens, quantidade de volumes (pcs), quantidade de caixas, dimensões das caixas, CBM, HS Code, valor da carga (unitário e total)",
       "Frete internacional",
@@ -59,7 +59,7 @@ export const REFERENCIA_PRAZOS = {
     ["Solicitação de PI e PL", "1", "1", "1"],
     ["Solicitação de frete internacional", "1", "2", "1"],
     ["Solicitação de frete rodoviário", "1", "1", "1"],
-    ["Solicitação de estimativa de custos", "1", "1", "1"],
+    ["Solicitação da simulação", "1", "1", "1"],
     ["Fornecedores apresentados", "2", "3", "2 por seguimento"],
   ],
 };

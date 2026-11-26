@@ -9,7 +9,7 @@ export default async function NovoProcesso({ searchParams }: { searchParams: Pro
   const { cliente } = await searchParams;
   const { supabase, etapas, mapaPerfis, feriados, hoje } = await base();
   const [{ data: itens }, { data: clientes }] = await Promise.all([
-    supabase.from("checklist_modelo").select("etapa_id,condicao").eq("ativo", true),
+    supabase.from("checklist_modelo").select("etapa_id,condicao,planos").eq("ativo", true),
     supabase.from("clientes").select("id,nome,contato").order("nome"),
   ]);
   const ativas = etapas.filter((e) => e.ativo);
@@ -24,10 +24,10 @@ export default async function NovoProcesso({ searchParams }: { searchParams: Pro
         clientes={clientes ?? []}
         clienteInicial={cliente}
         feriados={[...feriados]}
-        itens={(itens ?? []) as { etapa_id: number; condicao: string | null }[]}
+        itens={(itens ?? []) as { etapa_id: number; condicao: string | null; planos: string[] | null }[]}
         etapas={ativas.map((e) => ({
           id: e.id, ordem: e.ordem, nome: e.nome, area: e.area, tipo: e.tipo,
-          prazo: e.prazo_dias_uteis, flex: e.prazo_flex, full: e.prazo_full, premium: e.prazo_premium, cert: e.prazo_com_certificacao,
+          prazo: e.prazo_dias_uteis, flex: e.prazo_flex, full: e.prazo_full, premium: e.prazo_premium, simulacao: e.prazo_simulacao, cert: e.prazo_com_certificacao,
           responsaveis: e.responsaveis_padrao.map((id) => mapaPerfis.get(id)?.nome).filter(Boolean) as string[],
           label: e.responsaveis_label,
         }))}

@@ -58,7 +58,7 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
 
   const filtros = [
     { nome: "resp", rotulo: "Responsável", valor: sp.resp ?? "", opcoes: [{ valor: "me", rotulo: "Eu" }, ...perfis.map((p) => ({ valor: p.id, rotulo: p.nome ?? p.email ?? "" }))] },
-    { nome: "plano", rotulo: "Plano", valor: sp.plano ?? "", opcoes: ["Flex", "Full", "Premium"].map((p) => ({ valor: p, rotulo: p })) },
+    { nome: "plano", rotulo: "Plano", valor: sp.plano ?? "", opcoes: ["Flex", "Full", "Premium", "Simulação"].map((p) => ({ valor: p, rotulo: p })) },
     { nome: "cert", rotulo: "Certificação", valor: sp.cert ?? "", opcoes: [{ valor: "sim", rotulo: "Com certificação" }, { valor: "nao", rotulo: "Sem certificação" }] },
     { nome: "status", rotulo: "Status", valor: sp.status ?? "", opcoes: [
       { valor: "atrasado", rotulo: "Atrasado" }, { valor: "hoje", rotulo: "Vence hoje" }, { valor: "amanha", rotulo: "Vence amanhã" },
@@ -67,7 +67,7 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
     { nome: "etapa", rotulo: "Etapa", valor: sp.etapa ?? "", opcoes: etapas.filter((e) => e.ativo && e.tipo !== "final").map((e) => ({ valor: String(e.id), rotulo: `${e.ordem}. ${nomeCurto(e.nome)}` })) },
   ];
 
-  const PLANOS = ["Premium", "Full", "Flex"];
+  const PLANOS = ["Premium", "Full", "Flex", "Simulação"];
   const plano = PLANOS.includes(sp.plano ?? "") ? sp.plano! : "";
   const hrefPlano = (p: string) => {
     const u = new URLSearchParams();
@@ -77,7 +77,7 @@ export default async function Processos({ searchParams }: { searchParams: SP }) 
   const abasPlano = (contar: boolean) => (
     <Tabs ativo={plano || "todos"} className="mb-1" itens={[
       { chave: "todos", rotulo: "Todos os planos", href: hrefPlano("") },
-      ...PLANOS.map((p) => ({ chave: p, rotulo: `Sourcing ${p}`, href: hrefPlano(p), ...(contar ? { contagem: todos.filter((e) => e.plano === p).length } : {}) })),
+      ...PLANOS.map((p) => ({ chave: p, rotulo: p === "Simulação" ? "Simulação" : `Sourcing ${p}`, href: hrefPlano(p), ...(contar ? { contagem: todos.filter((e) => e.plano === p).length } : {}) })),
     ]} />
   );
 

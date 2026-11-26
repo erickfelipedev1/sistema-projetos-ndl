@@ -114,6 +114,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
                         <div><label className="label">Flex</label><input name="prazo_flex" type="number" min={0} defaultValue={e.prazo_flex ?? ""} className="input" /></div>
                         <div><label className="label">Full</label><input name="prazo_full" type="number" min={0} defaultValue={e.prazo_full ?? ""} className="input" /></div>
                         <div><label className="label">Premium</label><input name="prazo_premium" type="number" min={0} defaultValue={e.prazo_premium ?? ""} className="input" /></div>
+                        <div><label className="label">Simulação</label><input name="prazo_simulacao" type="number" min={0} defaultValue={e.prazo_simulacao ?? ""} className="input" /></div>
                         <div><label className="label">Com certificação</label><input name="prazo_com_certificacao" type="number" min={0} defaultValue={e.prazo_com_certificacao ?? ""} className="input" /></div>
                         <div className="md:col-span-3"><label className="label">Responsável (texto exibido)</label><input name="responsaveis_label" defaultValue={e.responsaveis_label ?? ""} className="input" /></div>
                         <div className="flex items-end gap-4 md:col-span-3">
@@ -153,7 +154,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
                 {[
                   ["Avanço de etapa", "Ao concluir uma etapa, a próxima começa na hora, com prazo calculado em dias úteis e os responsáveis padrão da etapa."],
                   ["Dias úteis", "Fins de semana e os feriados cadastrados em Operação › Feriados não contam para prazos."],
-                  ["Prazo por plano", "Etapas com prazo Flex/Full/Premium usam o prazo do plano do processo; com certificação usam o prazo específico."],
+                  ["Prazo por plano", "Etapas com prazo Flex/Full/Premium/Simulação usam o prazo do plano do processo; com certificação usam o prazo específico."],
                   ["Recalcular prazos", "Mudar plano ou certificação de um processo recalcula as etapas ainda não concluídas."],
                   ["Tipo de ordem", "Gerenciamento próprio ou terceirizado troca os itens do checklist das etapas pós-fechamento."],
                   ["Etapa final", "Ao concluir a última etapa com prazo, o processo passa para Concluídos."],
@@ -270,7 +271,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
               <div className="space-y-3 px-4 py-4 text-[13px] text-muted">
                 <p><strong className="text-ink">Todos veem tudo</strong>: processos, clientes, histórico, chat e anexos. Qualquer pessoa pode comentar e anexar arquivos.</p>
                 <p><strong className="text-ink">Alterar uma etapa</strong> (marcar checklist, avançar, voltar, prazo, responsável, situação, cobrança) só pode quem é da <strong className="text-ink">área da etapa</strong> (cargo igual à área — ex.: CS no Onboarding), quem é <strong className="text-ink">responsável</strong> por ela ou um <strong className="text-ink">administrador</strong>.</p>
-                <p><strong className="text-ink">Itens com responsável próprio</strong> (ex.: cotação de frete → Isabella/Cris, estimativa → Alycia) só podem ser marcados por essas pessoas, e a demanda só pode ser concluída por quem a recebeu.</p>
+                <p><strong className="text-ink">Itens com responsável próprio</strong> (ex.: cotação de frete → Isabella/Cris, simulação → Alycia) só podem ser marcados por essas pessoas, e a demanda só pode ser concluída por quem a recebeu.</p>
                 <p><strong className="text-ink">Administradores</strong> fazem tudo, alteram a configuração do fluxo (etapas, responsáveis, checklists, usuários) e definem o cargo de cada pessoa. O cargo, depois de definido, só o administrador muda.</p>
                 <p>As regras valem no banco de dados (não só na tela). Administradores atuais: <strong className="text-ink">{perfis.filter((p) => p.admin).map((p) => p.nome).join(", ") || "nenhum"}</strong>.</p>
               </div>

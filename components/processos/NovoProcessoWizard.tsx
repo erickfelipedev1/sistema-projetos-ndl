@@ -11,7 +11,7 @@ import { criarProcessoComId } from "@/app/actions";
 import { enviarArquivosProcesso, LIMITE_MB, tamanhoTexto } from "@/components/anexos/Anexos";
 import Avatar from "@/components/ui/Avatar";
 
-type EtapaW = { id: number; ordem: number; nome: string; area: string; tipo: string; prazo: number | null; flex: number | null; full: number | null; premium: number | null; cert: number | null; responsaveis: string[]; label: string | null };
+type EtapaW = { id: number; ordem: number; nome: string; area: string; tipo: string; prazo: number | null; flex: number | null; full: number | null; premium: number | null; simulacao?: number | null; cert: number | null; responsaveis: string[]; label: string | null };
 
 const PASSOS = ["Cliente", "Configuração", "Responsáveis", "Revisão"];
 
@@ -20,6 +20,7 @@ function prazoDe(e: EtapaW, plano: string, cert: boolean) {
   if (plano === "Flex" && e.flex != null) return e.flex;
   if (plano === "Full" && e.full != null) return e.full;
   if (plano === "Premium" && e.premium != null) return e.premium;
+  if (plano === "Simulação" && e.simulacao != null) return e.simulacao;
   return e.prazo;
 }
 
@@ -36,7 +37,7 @@ function Opcao({ nome, valor, atual, onChange, titulo, sub }: { nome: string; va
 type ClienteW = { id: string; nome: string; contato: string | null };
 
 export default function NovoProcessoWizard({ etapas, itens, feriados, hoje, clientes, clienteInicial }: {
-  etapas: EtapaW[]; itens: { etapa_id: number; condicao: string | null }[]; feriados: string[]; hoje: string; clientes: ClienteW[]; clienteInicial?: string;
+  etapas: EtapaW[]; itens: { etapa_id: number; condicao: string | null; planos?: string[] | null }[]; feriados: string[]; hoje: string; clientes: ClienteW[]; clienteInicial?: string;
 }) {
   const inicial = clientes.find((c) => c.id === clienteInicial);
   const [passo, setPasso] = useState(0);
@@ -90,7 +91,7 @@ export default function NovoProcessoWizard({ etapas, itens, feriados, hoje, clie
       data = addDiasUteis(data, p, fer);
       return { ...e, p, ate: data };
     });
-    const tarefas = itens.filter((i) => etapas.some((e) => e.id === i.etapa_id) && (!i.condicao || i.condicao === ger)).length;
+    const tarefas = itens.filter((i) => etapas.some((e) => e.id === i.etapa_id) && (!i.condicao || i.condicao === ger) && (!i.planos || i.planos.includes(plano))).length;
     return { linhas, previsao: data, total: diasUteisEntre(hoje, data, fer), tarefas };
   }, [etapas, plano, cert, ger, itens, hoje, fer]);
 
@@ -197,11 +198,12 @@ export default function NovoProcessoWizard({ etapas, itens, feriados, hoje, clie
               <div><h2 className="text-[15px] font-semibold">Configuração</h2><p className="text-xs text-muted">Define os prazos e o checklist do processo.</p></div>
               <fieldset>
                 <legend className="label">Plano</legend>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {etapas.some((e) => e.flex != null) ? ["Flex", "Full", "Premium"].map((p) => {
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {etapas.some((e) => e.flex != null) ? ["Flex", "Full", "Premium", "Simulação"].map((p) => {
                     const e = etapas.find((x) => x.flex != null)!;
-                    return <Opcao key={p} nome="plano_r" valor={p} atual={plano} onChange={setPlano} titulo={p} sub={`Projeto em ${prazoDe(e, p, false)} dias úteis`} />;
-                  }) : ["Flex", "Full", "Premium"].map((p) => <Opcao key={p} nome="plano_r" valor={p} atual={plano} onChange={setPlano} titulo={p} />)}
+                    return <Opcao key={p} nome="plano_r" valor={p} atual={plano} onChange={setPlano} titulo={p === "Simulação" ? "Simulação" : `Sourcing ${p}`}
+                      sub={p === "Simulação" ? `Sem sourcing · ${prazoDe(e, p, false)} dias úteis` : `Projeto em ${prazoDe(e, p, false)} dias úteis`} />;
+                  }) : ["Flex", "Full", "Premium", "Simulação"].map((p) => <Opcao key={p} nome="plano_r" valor={p} atual={plano} onChange={setPlano} titulo={p} />)}
                 </div>
               </fieldset>
               <fieldset>

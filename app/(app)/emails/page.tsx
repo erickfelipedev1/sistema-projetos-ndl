@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 const VARIAVEIS = [
   { chave: "{empresa}", desc: "Empresa do cliente" },
   { chave: "{contato}", desc: "Pessoa de contato" },
-  { chave: "{plano}", desc: "Flex, Full ou Premium" },
+  { chave: "{plano}", desc: "Flex, Full, Premium ou Simulação" },
   { chave: "{meu_nome}", desc: "Seu nome (responsável)" },
   { chave: "{x_ntl}", desc: "“X” se for gerenciamento terceirizado" },
   { chave: "{x_proprio}", desc: "“X” se for gerenciamento próprio" },

@@ -14,6 +14,7 @@ export type Etapa = {
   prazo_flex: number | null;
   prazo_full: number | null;
   prazo_premium: number | null;
+  prazo_simulacao?: number | null;
   prazo_com_certificacao: number | null;
 };
 
@@ -132,6 +133,7 @@ export type Desempenho = {
   prazo_flex: number | null;
   prazo_full: number | null;
   prazo_premium: number | null;
+  prazo_simulacao?: number | null;
   prazo_com_certificacao: number | null;
 };
 

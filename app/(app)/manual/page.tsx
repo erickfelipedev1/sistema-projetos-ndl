@@ -88,13 +88,14 @@ export default async function Manual({ searchParams }: { searchParams: Promise<{
                   <h2 className="card-title">Regras do fluxo</h2>
                   <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-muted">
                     <li>Ao concluir uma etapa, a próxima começa automaticamente com prazo e responsável.</li>
-                    <li>Distribuição: a Ana Clara escolhe UMA pessoa para conduzir o projeto (Gabriella ou Giovanna no sourcing, Alycia na estimativa de custos). Ao direcionar, o Projeto começa com essa pessoa.</li>
+                    <li>Distribuição: a Ana Clara escolhe UMA pessoa para conduzir o projeto (Gabriella ou Giovanna no sourcing, Alycia na simulação). Ao direcionar, o Projeto começa com essa pessoa.</li>
                     <li>Aba Fornecedores do processo: fábrica, contato, histórico da negociação, documentos (PI, PL, datasheets) e qual o cliente escolheu.</li>
                     <li>Aba Documentos: o primeiro bloco aparece no portal do cliente; o olho libera ou tira qualquer arquivo do portal.</li>
                     <li>Habilitação de Radar: fica no cadastro do cliente (documentos, limite, validade, procuração) e o limite aparece em cada processo dele.</li>
                     <li>Projeto que não virou ordem: use “Encerrar sem ordem” com o resultado (deu preço ou não) e o motivo. Ele vai para Concluídos, onde dá para filtrar por resultado e motivo.</li>
                     <li>Prazos em dias úteis: fins de semana e feriados cadastrados não contam.</li>
-                    <li>Projeto: Flex 10 · Full 15 · Premium 25 dias. Cotação: 1 dia, 2 com certificação.</li>
+                    <li>Projeto: Flex 25 · Full 27 · Premium 35 dias. Simulação (cliente que já tem fornecedor, sem sourcing): 14 dias.</li>
+                    <li>Simulação em 6 passos: recebimento da solicitação, frete internacional, frete rodoviário, montagem, verificação da NLG e envio ao CS.</li>
                     <li>A Viagem começa com 30 dias e pode ser ajustada pela data de chegada (ETA).</li>
                     <li>Etapa concluída por engano? Use “Voltar etapa” no processo.</li>
                   </ul>
@@ -130,6 +131,7 @@ export default async function Manual({ searchParams }: { searchParams: Promise<{
                             <span className="block">Flex <strong className="num">{etapaSel.prazo_flex}</strong> dias</span>
                             <span className="block">Full <strong className="num">{etapaSel.prazo_full}</strong> dias</span>
                             <span className="block">Premium <strong className="num">{etapaSel.prazo_premium}</strong> dias</span>
+                            {etapaSel.prazo_simulacao != null && <span className="block">Simulação <strong className="num">{etapaSel.prazo_simulacao}</strong> dias</span>}
                           </span>
                         ) : etapaSel.tipo === "tarefa" ? (
                           <>{etapaSel.prazo_dias_uteis} {etapaSel.prazo_dias_uteis === 1 ? "dia útil" : "dias úteis"}{etapaSel.prazo_com_certificacao != null ? ` · ${etapaSel.prazo_com_certificacao} com certificação` : ""}{etapaSel.prazo_editavel ? " · ajustável pela ETA" : ""}</>

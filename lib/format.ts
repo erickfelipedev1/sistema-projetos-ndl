@@ -47,6 +47,7 @@ type PrazosEtapa = {
   prazo_flex: number | null;
   prazo_full: number | null;
   prazo_premium: number | null;
+  prazo_simulacao?: number | null;
   prazo_com_certificacao: number | null;
 };
 
@@ -56,7 +57,7 @@ export function prazoEtapaTexto(e: PrazosEtapa) {
   if (e.tipo === "final") return "Fim";
   if (e.prazo_flex !== null || e.prazo_full !== null || e.prazo_premium !== null) {
     const p = (v: number | null) => v ?? e.prazo_dias_uteis ?? "—";
-    return `Flex ${p(e.prazo_flex)} · Full ${p(e.prazo_full)} · Premium ${p(e.prazo_premium)} d.u.`;
+    return `Flex ${p(e.prazo_flex)} · Full ${p(e.prazo_full)} · Premium ${p(e.prazo_premium)}${e.prazo_simulacao != null ? ` · Simulação ${e.prazo_simulacao}` : ""} d.u.`;
   }
   if (e.prazo_dias_uteis === null) return "Sem prazo";
   const base = `${e.prazo_dias_uteis} d.u.`;

@@ -208,7 +208,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                 </form>
               </Modal>
             )}
-            {p.status === "ativo" && atual?.nome === "Apresentação da estimativa" && podeAtual && (
+            {p.status === "ativo" && (atual?.nome === "Apresentação da simulação" || atual?.nome === "Apresentação da estimativa") && podeAtual && (
               <Modal rotulo={<><Recotar size={14} /> Recotar</>} botaoClasse="btn-primary" titulo="Recotar este processo" descricao="O cliente vai cotar de novo: o processo volta para Projeto, com o checklist desmarcado e novo prazo contado a partir de hoje. A data da recotação fica registrada.">
                 <form action={recotarProcesso} className="space-y-3">
                   <input type="hidden" name="processo_id" value={p.id} />
@@ -394,7 +394,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                         .map((pf) => <option key={pf.id} value={pf.id}>{nomeExibicao(pf.nome ?? pf.email)}</option>)}
                     </select>
                     <SubmitButton className="btn-primary h-8 text-xs" pendente="Direcionando…">Direcionar e iniciar o Projeto <ArrowRight size={13} /></SubmitButton>
-                    <p className="w-full text-[11px] text-subtle">Gabriella ou Giovanna: sourcing (Premium, Full ou Flex) · Alycia: estimativa de custos.</p>
+                    <p className="w-full text-[11px] text-subtle">Gabriella ou Giovanna: sourcing (Premium, Full ou Flex) · Alycia: simulação.</p>
                   </form>
                 )}
                 {podeAtual && (<>
@@ -516,7 +516,9 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                     Segmentos do sourcing{p.plano ? ` (${p.plano}: ${p.plano === "Premium" ? "6 segmentos e 12 fornecedores, 2 por segmento" : p.plano === "Full" ? "1 segmento e 3 fornecedores" : "1 segmento e 1 fornecedor"})` : ""}.
                     Dê um nome a cada segmento e liste os fornecedores escolhidos, um por linha.
                   </p>
-                  {!p.plano ? (
+                  {p.plano === "Simulação" ? (
+                    <EmptyState compacto titulo="Processo de simulação" texto="No plano Simulação não há sourcing: o cliente já tem o fornecedor, então não há segmentos." />
+                  ) : !p.plano ? (
                     <EmptyState compacto titulo="Defina o plano do processo" texto="Os segmentos aparecem assim que o plano (Flex, Full ou Premium) for escolhido na aba Dados." />
                   ) : segmentos.length ? (
                     <div className="grid gap-3 lg:grid-cols-2">
@@ -606,7 +608,7 @@ export default async function DetalheProcesso({ params, searchParams }: { params
                   <div><label className="label">Contato no cliente</label><input name="contato" defaultValue={p.contato ?? ""} className="input" /></div>
                   <div>
                     <label className="label">Plano</label>
-                    <select name="plano" defaultValue={p.plano ?? ""} className="input"><option value="">—</option><option>Flex</option><option>Full</option><option>Premium</option></select>
+                    <select name="plano" defaultValue={p.plano ?? ""} className="input"><option value="">—</option><option>Flex</option><option>Full</option><option>Premium</option><option>Simulação</option></select>
                   </div>
                   <div>
                     <label className="label">Tipo de ordem</label>

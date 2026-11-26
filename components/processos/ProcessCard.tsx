@@ -10,6 +10,7 @@ export const PLANO_ESTILO: Record<string, string> = {
   Flex: "bg-[#eef4fa] text-[#2f6b9a]",
   Full: "bg-[#e9eef6] text-[#123b63]",
   Premium: "bg-[#123b63] text-white",
+  "Simulação": "bg-[#fff1e6] text-[#b4530b]",
 };
 
 export function PlanoTag({ plano }: { plano: string | null }) {

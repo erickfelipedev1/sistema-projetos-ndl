@@ -170,6 +170,7 @@ export async function salvarEtapa(fd: FormData) {
     prazo_flex: num("prazo_flex"),
     prazo_full: num("prazo_full"),
     prazo_premium: num("prazo_premium"),
+    prazo_simulacao: num("prazo_simulacao"),
     prazo_com_certificacao: num("prazo_com_certificacao"),
   };
   const { error } = id
@@ -623,7 +624,7 @@ export async function pausarProcesso(fd: FormData) {
   revalidatePath("/", "layout");
 }
 
-// Recotação: depois de apresentar a estimativa, o CS volta o processo para Projeto (nova data e prazo)
+// Recotação: depois de apresentar a simulação, o CS volta o processo para Projeto (nova data e prazo)
 export async function recotarProcesso(fd: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("recotar_processo", {

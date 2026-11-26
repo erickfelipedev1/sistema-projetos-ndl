@@ -35,7 +35,7 @@ const TOM = {
 function iconeDa(e: { nome: string; area: string }) {
   const n = e.nome.toLowerCase();
   if (n.includes("onboarding") || n.includes("apresentação /")) return UserRound;
-  if (n.includes("estimativa")) return Calculator;
+  if (n.includes("estimativa") || n.includes("simulação")) return Calculator;
   if (n.includes("projeto")) return FileText;
   if (n.includes("ordem") || n.includes("processo")) return ClipboardList;
   if (n.includes("booking")) return CalendarDays;

@@ -81,7 +81,7 @@ export default async function Distribuicao({ searchParams }: { searchParams: Pro
   return (
     <div className="space-y-5">
       {erro && <p role="alert" className="rounded-md border border-bad/40 bg-bad-soft px-3 py-2 text-[13px] text-bad-ink"><strong className="font-semibold">Não foi possível direcionar:</strong> {erro}</p>}
-      <PageHeader titulo="Distribuição" subtitulo="Depois do onboarding, escolha UMA pessoa para conduzir cada projeto: Gabriella ou Giovanna nos projetos de sourcing (Premium, Full ou Flex) e Alycia nos de estimativa de custos. A pessoa recebe uma demanda no chat e o projeto segue para ela." />
+      <PageHeader titulo="Distribuição" subtitulo="Depois do onboarding, escolha UMA pessoa para conduzir cada projeto: Gabriella ou Giovanna nos projetos de sourcing (Premium, Full ou Flex) e Alycia nos de simulação. A pessoa recebe uma demanda no chat e o projeto segue para ela." />
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Resumo">
         <div className="card px-4 py-3.5"><p className="text-[11px] font-medium text-muted">Aguardando distribuição</p><p className={`num mt-1 text-2xl font-semibold ${aguardando.length ? "text-warn-ink" : "text-ink"}`}>{aguardando.length}</p></div>

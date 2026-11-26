@@ -65,7 +65,8 @@ const CURTOS: Record<string, string> = {
   "Distribuição": "Distribuição",
   "Projeto (Flex / Premium / Full)": "Projeto",
   "Estimativa de custo": "Estimativa",
-  "Apresentação da estimativa": "Apres. estimativa",
+  "Apresentação da simulação": "Apres. simulação",
+  "Apresentação da estimativa": "Apres. simulação",
   "Processo / Ordem / Pagamento": "CX · Ordem",
   "Booking + Coleta + Estufagem": "Booking",
 };
