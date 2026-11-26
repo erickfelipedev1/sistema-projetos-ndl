@@ -3,7 +3,6 @@ import { ArrowRight } from "lucide-react";
 import { base, previsaoChegada, media, duracaoUteis, agruparPor, fmt1, type EtapaMin } from "@/lib/dados";
 import type { EtapaAtual } from "@/lib/types";
 import { dataBR, metaCurta } from "@/lib/format";
-import { diasUteisEntre } from "@/lib/diasUteis";
 import { motivo, nomeCurto, relativo, statusPrazo, du } from "@/lib/status";
 import PageHeader from "@/components/ui/PageHeader";
 import KpiCard from "@/components/ui/KpiCard";
@@ -57,9 +56,6 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
   const tempoMedio = media(concluidos.map(dur));
   const tmRec = media(recentes), tmAnt = media(anteriores);
 
-  const prevs = atuais.map((e) => previsao.get(e.processo_id)).filter(Boolean) as string[];
-  const prevMediaMs = prevs.length ? prevs.reduce((s, d) => s + new Date(d + "T12:00:00").getTime(), 0) / prevs.length : null;
-  const prevMedia = prevMediaMs ? new Date(prevMediaMs).toISOString().slice(0, 10) : null;
 
   // ---------- fluxo + gargalos ----------
   const hist = (histData ?? []) as { etapa_id: number | null; iniciado_em: string | null; concluido_em: string | null; prazo_dias_uteis: number | null; tipo: string }[];
@@ -115,7 +111,7 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
       <PageHeader titulo="Visão geral" subtitulo="Acompanhe o andamento dos processos e identifique gargalos." />
 
       {/* KPIs */}
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" aria-label="Indicadores">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5" aria-label="Indicadores">
         <KpiCard rotulo="Processos ativos" valor={atuais.length} href="/processos"
           tendencia={variacaoAtivos !== null ? { texto: `${variacaoAtivos > 0 ? "+" : ""}${variacaoAtivos}%`, direcao: variacaoAtivos > 0 ? "sobe" : variacaoAtivos < 0 ? "desce" : "igual", bom: true } : null}
           contexto={variacaoAtivos !== null ? "vs. 30 dias atrás" : "sem histórico para comparar"} />
@@ -127,8 +123,6 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
         <KpiCard rotulo="Tempo médio" valor={fmt1(tempoMedio)} unidade={tempoMedio !== null ? "d.u." : undefined}
           tendencia={tmRec !== null && tmAnt !== null ? { texto: `${tmRec <= tmAnt ? "" : "+"}${fmt1(tmRec - tmAnt)} d.u.`, direcao: tmRec > tmAnt ? "sobe" : tmRec < tmAnt ? "desce" : "igual", bom: tmRec <= tmAnt } : null}
           contexto={concluidos.length ? `por processo · ${concluidos.length} concluído${concluidos.length > 1 ? "s" : ""}${tmRec !== null && tmAnt !== null ? " · últimos 45 dias" : ""}` : "nenhum processo concluído ainda"} />
-        <KpiCard rotulo="Previsão média" valor={prevMedia ? dataBR(prevMedia) : "—"}
-          contexto={prevMedia ? `de chegada · em ${du(diasUteisEntre(hoje, prevMedia, feriados))}` : undefined} />
       </section>
 
       {/* Fluxo */}
